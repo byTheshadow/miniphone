@@ -388,7 +388,9 @@ const MiniApp = (() => {
 
   /* ========== 打开 App 开始 ========== */
   function openApp(appId) {
-    if (appId === 'settings') { openSettings(); return; }
+  if (appId === 'settings') { openSettings(); return; }
+  if (appId === 'chat') { ChatApp.open(); $appView.classList.add('open'); return; }
+  // ...其他 App
 
     const appDef = DEFAULT_APPS.find(a => a.id === appId);
     if (!appDef) return;
