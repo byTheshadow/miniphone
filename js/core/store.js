@@ -22,44 +22,18 @@ const MiniStore = (() => {
     ai: {
       baseUrl: 'https://api.openai.com/v1',
       apiKey: '',
-      model: 'gpt-4o',},
+      model: 'gpt-4o',
+    },
 
     // 主屏幕布局
     currentPage: 0,
-    pages: [],// 由app.js 初始化默认布局
+    pages: [],                // 由 app.js 初始化默认布局
 
     // Dock 栏
-    dock: [], // 由 app.js 初始化
+    dock: [],                 // 由 app.js 初始化
 
-    // 小组件数据
-  /* ========== 默认状态 开始 ========== */
-const defaultState = {
-  // 外观
-  theme: 'light',
-  showStatusBar: true,
-  wallpaperUrl: '',
-
-  // AI 配置
-  ai: {
-    baseUrl: 'https://api.openai.com/v1',
-    apiKey: '',
-    model: 'gpt-4o',},
-
-  // 主屏幕
-  currentPage: 0,
-  pages: [], // 由app.js 初始化默认布局
-
-  // Dock栏
-  dock: [],
-
-  // App 自定义（图标URL、角标）
-  apps: {},
-};
-  
-/* ========== 默认状态 结束 ========== */
-
-    // App 列表（用户可自定义图标）
-    apps: {},// { appId: { iconUrl: '', badge: 0 } }
+    // App 自定义（图标URL、角标）
+    apps: {},                 // { appId: { iconUrl: '', badge: 0 } }
   };
   /* ========== 默认状态 结束 ========== */
 
@@ -195,3 +169,4 @@ const defaultState = {
 })();
 
 /* ========== MiniPhone Store 全局状态管理 结束 ========== */
+
