@@ -14,6 +14,9 @@
 <!-- ========== 样式引入 开始 ========== -->
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/homescreen.css">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/widget-manager.css">
+
 <!-- ========== 样式引入 结束 ========== -->
 </head>
 <body>
@@ -157,6 +160,67 @@
   </div>
 </div>
 <!-- ========== 设置面板 结束 ========== -->
+ <!-- ========== 小组件管理面板 开始 ========== -->
+<div id="widget-manager" class="widget-manager">
+  <div class="widget-manager__glass">
+
+    <!--顶部栏 -->
+    <div class="widget-manager__header">
+      <button id="wm-close" class="widget-manager__close">✕</button>
+      <h2>小组件管理</h2>
+      <button id="wm-add" class="widget-manager__add">＋ 添加</button>
+    </div>
+
+    <!-- 当前小组件列表 -->
+    <div id="wm-list" class="widget-manager__list">
+      <!-- 由JS 动态生成 -->
+    </div>
+
+  </div>
+</div>
+<!-- ========== 小组件管理面板 结束 ========== -->
+
+
+<!-- ========== 小组件编辑弹窗 开始 ========== -->
+<div id="widget-editor" class="widget-editor">
+  <div class="widget-editor__glass">
+
+    <div class="widget-editor__header">
+      <button id="we-back" class="widget-editor__back">← 返回</button>
+      <h3id="we-title">编辑小组件</h3>
+      <button id="we-save" class="widget-editor__save">保存</button>
+    </div>
+
+    <!-- 预览区 -->
+    <div id="we-preview" class="widget-editor__preview"></div>
+
+    <!-- 编辑表单 -->
+    <div id="we-form" class="widget-editor__form">
+      <!-- 由 JS 根据小组件类型动态生成 -->
+    </div>
+
+  </div>
+</div>
+<!-- ========== 小组件编辑弹窗 结束 ========== -->
+
+
+<!-- ========== 小组件类型选择弹窗 开始 ========== -->
+<div id="widget-picker" class="widget-picker">
+  <div class="widget-picker__glass">
+
+    <div class="widget-picker__header">
+      <button id="wp-close" class="widget-picker__close">✕</button>
+      <h3>选择小组件类型</h3>
+    </div>
+
+    <div id="wp-grid" class="widget-picker__grid">
+      <!-- 由 JS 动态生成 -->
+    </div>
+
+  </div>
+</div>
+<!-- ========== 小组件类型选择弹窗 结束 ========== -->
+
 
 <!-- ========== Toast 提示容器 开始 ========== -->
 <div id="toast-container" class="toast-container"></div>

@@ -32,46 +32,31 @@ const MiniStore = (() => {
     dock: [], // 由 app.js 初始化
 
     // 小组件数据
-    widgets: {
-      clock: { enabled: true },
-      countdown: {
-        enabled: true,
-        title: '新年快乐',
-        targetDate: `${new Date().getFullYear() + 1}-01-01`,},
-      music: {
-        enabled: true,
-        title: '暂无播放',
-        artist: '点击打开音乐',
-        progress: 0,
-        coverUrl: '',
-      },
-      profile: {
-        enabled: true,
-        name: 'MiniPhone 用户',
-        bio: '这个人很懒，什么都没写~',
-        avatarUrl: '',
-      },
-      memo: {
-        enabled: true,
-        content: '欢迎使用 MiniPhone！\n这是你的虚拟手机主屏幕 ✨',
-      },
-      weather: {
-        enabled: false,
-        city: '东京',
-        temp: '22°',
-        desc: '晴',
-        icon: '☀️',
-      },
-      pet: {
-        enabled: true,
-        name: 'たまご',
-        sprite: '🥚',
-        mood: '开心',
-        hp: 100,
-        hunger: 80,
-        happy: 90,
-      },
-    },
+  /* ========== 默认状态 开始 ========== */
+const defaultState = {
+  // 外观
+  theme: 'light',
+  showStatusBar: true,
+  wallpaperUrl: '',
+
+  // AI 配置
+  ai: {
+    baseUrl: 'https://api.openai.com/v1',
+    apiKey: '',
+    model: 'gpt-4o',},
+
+  // 主屏幕
+  currentPage: 0,
+  pages: [], // 由app.js 初始化默认布局
+
+  // Dock栏
+  dock: [],
+
+  // App 自定义（图标URL、角标）
+  apps: {},
+};
+  
+/* ========== 默认状态 结束 ========== */
 
     // App 列表（用户可自定义图标）
     apps: {},// { appId: { iconUrl: '', badge: 0 } }
