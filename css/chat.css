@@ -11,6 +11,7 @@
   position: fixed;
   top: 0;
   left: 0;
+  z-index: 100; /* 确保在主屏幕之上 */
 }
 /* ========== Chat App 根容器 结束 ========== */
 
