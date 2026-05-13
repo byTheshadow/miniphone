@@ -11,14 +11,9 @@ MiniPhone.HomeScreen = (function() {
   var totalPages    = 1;
   var currentPage   = 0;
 
-  /* 触摸手势状态 */
   var touch = {
-    startX: 0,
-    startY: 0,
-    startTime: 0,
-    isDragging: false,
-    isVertical: null,   // null=未判断, true=纵向, false=横向
-    currentX: 0
+    startX: 0, startY: 0, startTime: 0,
+    isDragging: false, isVertical: null, currentX: 0
   };
   /* ========== [/BLOCK: 状态变量] ========== */
 
@@ -34,9 +29,8 @@ MiniPhone.HomeScreen = (function() {
     { id: 'settings', name: '设置',  emoji: '⚙️', color: 'linear-gradient(135deg,#667eea,#764ba2)' },
   ];
 
-  var defaultDockApps  = ['chat', 'music', 'calendar', 'settings'];
-  var APPS_PER_PAGE_0  = 4;   // 第一页（有小组件）放几个 App
-  var APPS_PER_PAGE    = 8;   // 后续页每页放几个 App
+  var defaultDockApps = ['chat', 'music', 'calendar', 'settings'];
+  var APPS_PER_PAGE   = 8; // 每个 App 页放几个图标
   /* ========== [/BLOCK: App 注册表] ========== */
 
   /* ========== [BLOCK: 初始化] ========== */
@@ -44,12 +38,10 @@ MiniPhone.HomeScreen = (function() {
     homeScreen = document.getElementById('home-screen');
     if (!homeScreen) return;
 
-    /* 创建轨道 */
     track = document.createElement('div');
     track.className = 'home-track';
     homeScreen.appendChild(track);
 
-    /* 创建指示点容器 */
     dotsContainer = document.createElement('div');
     dotsContainer.className = 'page-dots';
     document.getElementById('app').appendChild(dotsContainer);
@@ -74,55 +66,59 @@ MiniPhone.HomeScreen = (function() {
       return dockIds.indexOf(a.id) === -1;
     });
 
-    /* 第一页 */
-    track.appendChild(buildPage(0, true, gridApps.slice(0, APPS_PER_PAGE_0), unread));
+    /* ── 第 0 页：纯小组件页 ── */
+    track.appendChild(buildWidgetPage());
 
-    /* 后续页 */
-    var remaining = gridApps.slice(APPS_PER_PAGE_0);
-    var extraPages = Math.max(0, Math.ceil(remaining.length / APPS_PER_PAGE));
-    for (var p = 0; p < extraPages; p++) {
-      var slice = remaining.slice(p * APPS_PER_PAGE, (p + 1) * APPS_PER_PAGE);
-      track.appendChild(buildPage(p + 1, false, slice, unread));
+    /* ── 第 1 页起：App 图标页，每页 APPS_PER_PAGE 个 ── */
+    var appPageCount = Math.max(1, Math.ceil(gridApps.length / APPS_PER_PAGE));
+    for (var p = 0; p < appPageCount; p++) {
+      var slice = gridApps.slice(p * APPS_PER_PAGE, (p + 1) * APPS_PER_PAGE);
+      track.appendChild(buildAppPage(p + 1, slice, unread));
     }
 
-    totalPages = 1 + extraPages;
-
-    /* 确保当前页不越界 */
+    totalPages = 1 + appPageCount;
     if (currentPage >= totalPages) currentPage = totalPages - 1;
 
     renderDots(totalPages);
-    goToPage(currentPage, false); // 无动画跳到当前页
+    goToPage(currentPage, false);
   }
   /* ========== [/BLOCK: 渲染所有页面] ========== */
 
-  /* ========== [BLOCK: 构建单页] ========== */
-  function buildPage(pageIndex, hasWidgets, apps, unread) {
+  /* ========== [BLOCK: 构建小组件页（第 0 页）] ========== */
+  function buildWidgetPage() {
+    var page = document.createElement('div');
+    page.className = 'home-page';
+    page.dataset.pageIndex = 0;
+
+    var wa = document.createElement('div');
+    wa.id = 'widget-area';
+    wa.className = 'widget-area';
+    page.appendChild(wa);
+
+    return page;
+  }
+  /* ========== [/BLOCK: 构建小组件页（第 0 页）] ========== */
+
+  /* ========== [BLOCK: 构建 App 图标页] ========== */
+  function buildAppPage(pageIndex, apps, unread) {
     var page = document.createElement('div');
     page.className = 'home-page';
     page.dataset.pageIndex = pageIndex;
 
-    if (hasWidgets) {
-      var wa = document.createElement('div');
-      wa.id = 'widget-area';
-      wa.className = 'widget-area';
-      page.appendChild(wa);
-    }
+    var grid = document.createElement('div');
+    grid.className = 'app-grid';
 
-    if (apps && apps.length > 0) {
-      var grid = document.createElement('div');
-      grid.className = 'app-grid';
-      apps.forEach(function(app) {
-        grid.appendChild(MiniPhone.AppIcon.render(app, {
-          showLabel: true,
-          badge: unread[app.id] || 0
-        }));
-      });
-      page.appendChild(grid);
-    }
+    apps.forEach(function(app) {
+      grid.appendChild(MiniPhone.AppIcon.render(app, {
+        showLabel: true,
+        badge: unread[app.id] || 0
+      }));
+    });
 
+    page.appendChild(grid);
     return page;
   }
-  /* ========== [/BLOCK: 构建单页] ========== */
+  /* ========== [/BLOCK: 构建 App 图标页] ========== */
 
   /* ========== [BLOCK: 渲染 Dock 栏] ========== */
   function renderDock() {
@@ -150,20 +146,14 @@ MiniPhone.HomeScreen = (function() {
     index = Math.max(0, Math.min(totalPages - 1, index));
     currentPage = index;
 
-    var offset = -index * 100;
+    track.style.transition = (animate === false)
+      ? 'none'
+      : 'transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)';
+    track.style.transform = 'translateX(' + (-index * 100) + '%)';
 
-    if (animate === false) {
-      track.style.transition = 'none';
-    } else {
-      track.style.transition = 'transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)';
-    }
-
-    track.style.transform = 'translateX(' + offset + '%)';
-
-    /* 更新指示点 */
     if (dotsContainer) {
       dotsContainer.querySelectorAll('.page-dot').forEach(function(dot, i) {
-        dot.classList.toggle('active', i === currentPage);
+        dot.classList.toggle('active', i === index);
       });
     }
   }
@@ -174,7 +164,6 @@ MiniPhone.HomeScreen = (function() {
     if (!dotsContainer) return;
     dotsContainer.innerHTML = '';
     dotsContainer.style.display = total <= 1 ? 'none' : 'flex';
-
     for (var i = 0; i < total; i++) {
       var dot = document.createElement('div');
       dot.className = 'page-dot' + (i === currentPage ? ' active' : '');
@@ -186,13 +175,9 @@ MiniPhone.HomeScreen = (function() {
   /* ========== [BLOCK: 手势绑定] ========== */
   function bindGestures() {
     if (!homeScreen) return;
-
-    /* ── Touch 事件 ── */
     homeScreen.addEventListener('touchstart', onTouchStart, { passive: true });
     homeScreen.addEventListener('touchmove',  onTouchMove,  { passive: false });
     homeScreen.addEventListener('touchend',   onTouchEnd,   { passive: true });
-
-    /* ── 鼠标拖拽（桌面调试用）── */
     homeScreen.addEventListener('mousedown',  onMouseDown);
   }
   /* ========== [/BLOCK: 手势绑定] ========== */
@@ -200,53 +185,56 @@ MiniPhone.HomeScreen = (function() {
   /* ========== [BLOCK: Touch 事件处理] ========== */
   function onTouchStart(e) {
     var t = e.touches[0];
-    touch.startX    = t.clientX;
-    touch.startY    = t.clientY;
-    touch.startTime = Date.now();
+    touch.startX     = t.clientX;
+    touch.startY     = t.clientY;
+    touch.startTime  = Date.now();
     touch.isDragging = true;
     touch.isVertical = null;
-    touch.currentX  = t.clientX;
-
-    /* 取消正在进行的动画 */
+    touch.currentX   = t.clientX;
     track.style.transition = 'none';
   }
 
   function onTouchMove(e) {
     if (!touch.isDragging) return;
-    var t = e.touches[0];
+    var t  = e.touches[0];
     var dx = t.clientX - touch.startX;
     var dy = t.clientY - touch.startY;
 
-    /* 第一次移动时判断方向 */
-    if (touch.isVertical === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+    /* 判断方向（只判断一次）*/
+    if (touch.isVertical === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
       touch.isVertical = Math.abs(dy) > Math.abs(dx);
     }
 
-    /* 纵向滚动：不拦截，让页面自然滚动 */
-    if (touch.isVertical === true) return;
+    if (touch.isVertical === true) return; // 纵向：放行
 
-    /* 横向滑动：阻止默认行为，移动轨道 */
     if (touch.isVertical === false) {
-      e.preventDefault();
+      e.preventDefault(); // 横向：阻止页面滚动
       touch.currentX = t.clientX;
-      var rawOffset  = -(currentPage * homeScreen.clientWidth) + dx;
-      var pct        = (rawOffset / homeScreen.clientWidth) * 100;
+
+      /* 边缘阻尼：第一页往右拉、最后一页往左拉时加阻力 */
+      var resistance = 1;
+      if ((currentPage === 0 && dx > 0) || (currentPage === totalPages - 1 && dx < 0)) {
+        resistance = 0.25;
+      }
+
+      var base = -(currentPage * homeScreen.clientWidth);
+      var pct  = ((base + dx * resistance) / homeScreen.clientWidth) * 100;
       track.style.transform = 'translateX(' + pct + '%)';
     }
   }
 
-  function onTouchEnd(e) {
+  function onTouchEnd() {
     if (!touch.isDragging || touch.isVertical !== false) {
       touch.isDragging = false;
       return;
     }
     touch.isDragging = false;
 
-    var dx       = touch.currentX - touch.startX;
-    var dt       = Date.now() - touch.startTime;
-    var width    = homeScreen.clientWidth;
-    var isFling  = Math.abs(dx) > 30 && dt < 300;
-    var isSwipe  = Math.abs(dx) > width * 0.3;
+    var dx      = touch.currentX - touch.startX;
+    var dt      = Date.now() - touch.startTime;
+    var width   = homeScreen.clientWidth;
+    var isFling = Math.abs(dx) > 40 && dt < 350;
+    var isSwipe = Math.abs(dx) > width * 0.25;
 
     if ((isFling || isSwipe) && dx < 0 && currentPage < totalPages - 1) {
       goToPage(currentPage + 1, true);
@@ -258,39 +246,39 @@ MiniPhone.HomeScreen = (function() {
   }
   /* ========== [/BLOCK: Touch 事件处理] ========== */
 
-  /* ========== [BLOCK: 鼠标拖拽（桌面）] ========== */
+  /* ========== [BLOCK: 鼠标拖拽（桌面调试）] ========== */
   function onMouseDown(e) {
-    /* 只响应左键 */
     if (e.button !== 0) return;
-
-    touch.startX    = e.clientX;
-    touch.startY    = e.clientY;
-    touch.startTime = Date.now();
+    touch.startX     = e.clientX;
+    touch.startTime  = Date.now();
     touch.isDragging = true;
-    touch.isVertical = false;
-    touch.currentX  = e.clientX;
+    touch.currentX   = e.clientX;
     track.style.transition = 'none';
 
     function onMouseMove(e) {
       if (!touch.isDragging) return;
       touch.currentX = e.clientX;
       var dx = e.clientX - touch.startX;
-      var rawOffset = -(currentPage * homeScreen.clientWidth) + dx;
-      var pct = (rawOffset / homeScreen.clientWidth) * 100;
+      var resistance = 1;
+      if ((currentPage === 0 && dx > 0) || (currentPage === totalPages - 1 && dx < 0)) {
+        resistance = 0.25;
+      }
+      var base = -(currentPage * homeScreen.clientWidth);
+      var pct  = ((base + dx * resistance) / homeScreen.clientWidth) * 100;
       track.style.transform = 'translateX(' + pct + '%)';
     }
 
     function onMouseUp(e) {
       document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mouseup',   onMouseUp);
       if (!touch.isDragging) return;
       touch.isDragging = false;
 
       var dx      = e.clientX - touch.startX;
       var dt      = Date.now() - touch.startTime;
       var width   = homeScreen.clientWidth;
-      var isFling = Math.abs(dx) > 30 && dt < 300;
-      var isSwipe = Math.abs(dx) > width * 0.3;
+      var isFling = Math.abs(dx) > 40 && dt < 350;
+      var isSwipe = Math.abs(dx) > width * 0.25;
 
       if ((isFling || isSwipe) && dx < 0 && currentPage < totalPages - 1) {
         goToPage(currentPage + 1, true);
@@ -302,9 +290,9 @@ MiniPhone.HomeScreen = (function() {
     }
 
     document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mouseup',   onMouseUp);
   }
-  /* ========== [/BLOCK: 鼠标拖拽（桌面）] ========== */
+  /* ========== [/BLOCK: 鼠标拖拽（桌面调试）] ========== */
 
   /* ========== [BLOCK: 获取 App 配置] ========== */
   function getAppConfig(appId) {
@@ -327,5 +315,6 @@ MiniPhone.HomeScreen = (function() {
 
 })();
 /* ========== [/BLOCK: MiniPhone HomeScreen 模块] ========== */
+
 
 
