@@ -499,8 +499,9 @@ img {
 
 .app-view.open {
   transform: translateY(0);
-  background: transparent; /* 让 app-view 本身透明，由内部 app 控制背景 */
+  background: var(--bg-primary); /* 用主题变量 */
 }
+
 
 .app-view__content {
   min-height: 100%;
