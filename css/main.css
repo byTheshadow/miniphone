@@ -122,13 +122,17 @@ ul, ol { list-style: none; }
 #app {
   width: 100%;
   height: 100%;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background: var(--wallpaper);
   background-size: cover;
   background-position: center;
-  display: flex;
-  flex-direction: column;
 }
 /* ========== [/BLOCK: 全局根容器] ========== */
 
@@ -137,10 +141,12 @@ ul, ol { list-style: none; }
   flex: 1;
   position: relative;
   overflow: hidden;
-  /* 关键：让子元素能正确计算 100% 高度 */
   min-height: 0;
+  width: 100%;
 }
+/* ========== [/BLOCK: 页面容器] ========== */
 
+/* ========== [BLOCK: 页面基础] ========== */
 .page {
   position: absolute;
   top: 0;
@@ -151,6 +157,8 @@ ul, ol { list-style: none; }
   pointer-events: none;
   transition: opacity var(--duration-normal) var(--ease-out),
               transform var(--duration-normal) var(--ease-out);
+  /* 关键：page 本身不裁剪，让子元素自己管理滚动 */
+  overflow: visible;
 }
 
 .page.active {
@@ -159,18 +167,24 @@ ul, ol { list-style: none; }
   transform: none;
 }
 
+.page.home-screen {
+  /* home-screen 自己管理内部布局，不需要 overflow */
+  overflow: hidden;
+}
+
 .page.app-view {
   background: var(--bg-primary);
   z-index: var(--z-app-view);
   transform: translateY(100%);
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
 .page.app-view.active {
   transform: translateY(0);
 }
-/* ========== [/BLOCK: 页面容器] ========== */
+/* ========== [/BLOCK: 页面基础] ========== */
 
 /* ========== [BLOCK: Home 指示条] ========== */
 .home-indicator {

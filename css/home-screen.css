@@ -1,54 +1,54 @@
-/* ========== [BLOCK: 主屏幕容器 — 多页横向滚动] ========== */
+/* ========== [BLOCK: 主屏幕外层容器] ========== */
 .home-screen {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+/* ========== [/BLOCK: 主屏幕外层容器] ========== */
+
+/* ========== [BLOCK: 页面轨道 — JS 控制位移] ========== */
+.home-track {
   display: flex;
   flex-direction: row;
-  overflow-x: scroll;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  width: 100%;
+  height: 100%;
+  /* transform 由 JS 控制，transition 由 JS 动态加减 */
+  will-change: transform;
 }
+/* ========== [/BLOCK: 页面轨道 — JS 控制位移] ========== */
 
-.home-screen::-webkit-scrollbar {
-  display: none;
-}
-/* ========== [/BLOCK: 主屏幕容器 — 多页横向滚动] ========== */
-
-/* ========== [BLOCK: 单页布局] ========== */
+/* ========== [BLOCK: 单页] ========== */
 .home-page {
   flex: 0 0 100%;
   width: 100%;
   height: 100%;
-  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   padding: var(--space-md) var(--space-md) 0;
   gap: var(--space-md);
-  /* 纵向内容超出时可滚动 */
   overflow-y: auto;
   overflow-x: hidden;
-  /* 给 Dock + 指示点留空间 */
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 120px;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  box-sizing: border-box;
 }
 
 .home-page::-webkit-scrollbar {
   display: none;
 }
-/* ========== [/BLOCK: 单页布局] ========== */
+/* ========== [/BLOCK: 单页] ========== */
 
 /* ========== [BLOCK: 小组件区域] ========== */
 .widget-area {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  flex-shrink: 0;
 }
 /* ========== [/BLOCK: 小组件区域] ========== */
 
@@ -58,6 +58,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-lg) var(--space-sm);
   padding: var(--space-sm) var(--space-xs);
+  flex-shrink: 0;
 }
 /* ========== [/BLOCK: App 图标网格] ========== */
 
@@ -90,7 +91,7 @@
   border: 1px solid var(--border-secondary);
   overflow: hidden;
   position: relative;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 
 .app-icon img {
@@ -115,7 +116,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(0,0,0,0.3);
 }
 
 .app-icon-label {
@@ -126,7 +127,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 /* ========== [/BLOCK: 单个 App 图标] ========== */
 
@@ -150,19 +151,9 @@
   max-width: calc(100% - 32px);
 }
 
-.dock .app-icon-wrapper {
-  gap: 0;
-}
-
-.dock .app-icon {
-  width: 52px;
-  height: 52px;
-  font-size: 26px;
-}
-
-.dock .app-icon-label {
-  display: none;
-}
+.dock .app-icon-wrapper { gap: 0; }
+.dock .app-icon { width: 52px; height: 52px; font-size: 26px; }
+.dock .app-icon-label { display: none; }
 /* ========== [/BLOCK: Dock 栏] ========== */
 
 /* ========== [BLOCK: 页面指示点] ========== */
@@ -192,25 +183,4 @@
 }
 /* ========== [/BLOCK: 页面指示点] ========== */
 
-/* ========== [BLOCK: 搜索栏（可选）] ========== */
-.search-pill {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--bg-blur);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-secondary);
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: background var(--duration-fast);
-}
-
-.search-pill:hover {
-  background: var(--bg-widget);
-}
-/* ========== [/BLOCK: 搜索栏（可选）] ========== */
 
