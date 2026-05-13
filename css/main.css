@@ -1,0 +1,220 @@
+/* ========== [BLOCK: CSS Reset] ========== */
+*, *::before, *::after {
+  box-sizing: border-box;margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue','PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+}
+
+a { color: inherit; text-decoration: none; }
+button { border: none; background: none; cursor: pointer; font: inherit; color: inherit; }
+input, textarea, select { font: inherit; color: inherit; border: none; outline: none; background: none; }
+img { display: block; max-width: 100%; }
+ul, ol { list-style: none; }
+/* ========== [/BLOCK: CSS Reset] ========== */
+
+/* ========== [BLOCK: CSS变量 — 默认主题（深色）] ========== */
+:root {
+  /* 主色调 */
+  --color-primary: #007AFF;
+  --color-primary-light: #5AC8FA;
+  --color-primary-dark: #0051D5;
+
+  /* 语义色 */
+  --color-success: #34C759;
+  --color-warning: #FF9500;
+  --color-danger: #FF3B30;
+  --color-info: #5AC8FA;
+
+  /* 背景 */
+  --bg-primary: #000000;
+  --bg-secondary: #1C1C1E;
+  --bg-tertiary: #2C2C2E;
+  --bg-elevated: #3A3A3C;
+  --bg-blur: rgba(28, 28, 30, 0.72);
+  --bg-widget: rgba(255, 255, 255, 0.08);
+  --bg-app-icon: rgba(255, 255, 255, 0.12);
+
+  /* 文字 */
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-tertiary: rgba(255, 255, 255, 0.38);
+  --text-inverse: #000000;
+
+  /* 边框 & 分割线 */
+  --border-primary: rgba(255, 255, 255, 0.18);
+  --border-secondary: rgba(255, 255, 255, 0.08);
+
+  /* 圆角 */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* 间距 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* 动画 */
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 0.15s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+
+  /* 层级 */
+  --z-base: 1;
+  --z-widget: 10;
+  --z-dock: 50;
+  --z-status-bar: 100;
+  --z-app-view: 200;
+  --z-modal: 500;
+  --z-toast: 600;
+
+  /* 安全区域 */
+  --safe-top: env(safe-area-inset-top, 20px);
+  --safe-bottom: env(safe-area-inset-bottom, 8px);
+
+  /* 壁纸 */
+  --wallpaper: linear-gradient(145deg, #0a0a1a 0%, #1a0a2e 30%, #0d1b3e 60%, #0a1628 100%);
+}
+/* ========== [/BLOCK: CSS 变量 — 默认主题（深色）] ========== */
+
+/* ========== [BLOCK: CSS 变量 — 浅色主题] ========== */
+[data-theme="light"] {
+  --bg-primary: #F2F2F7;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #E5E5EA;
+  --bg-elevated: #FFFFFF;
+  --bg-blur: rgba(242, 242, 247, 0.72);
+  --bg-widget: rgba(255, 255, 255, 0.85);
+  --bg-app-icon: rgba(0, 0, 0, 0.06);
+
+  --text-primary: #000000;
+  --text-secondary: rgba(0, 0, 0, 0.55);
+  --text-tertiary: rgba(0, 0, 0, 0.3);
+  --text-inverse: #FFFFFF;
+
+  --border-primary: rgba(0, 0, 0, 0.15);
+  --border-secondary: rgba(0, 0, 0, 0.06);
+
+  --wallpaper: linear-gradient(145deg, #667eea 0%, #764ba2 30%, #f093fb 60%, #f5576c 100%);
+}
+/* ========== [/BLOCK: CSS 变量 — 浅色主题] ========== */
+
+/* ========== [BLOCK: 全局根容器] ========== */
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: var(--wallpaper);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+}
+/* ========== [/BLOCK: 全局根容器] ========== */
+
+/* ========== [BLOCK: 页面容器] ========== */
+.page-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
+
+.page.active {
+  opacity: 1;
+  pointer-events: auto;transform: none;
+}
+
+.page.app-view {
+  background: var(--bg-primary);
+  z-index: var(--z-app-view);
+  transform: translateY(100%);
+}
+
+.page.app-view.active {
+  transform: translateY(0);
+}
+/* ========== [/BLOCK: 页面容器] ========== */
+
+/* ========== [BLOCK: Home 指示条] ========== */
+.home-indicator {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: var(--text-primary);
+  opacity: 0.3;
+  border-radius: var(--radius-full);
+  z-index: var(--z-toast);
+  cursor: pointer;
+  transition: opacity var(--duration-fast);
+}
+
+.home-indicator:hover {
+  opacity: 0.6;
+}
+/* ========== [/BLOCK: Home 指示条] ========== */
+
+/* ========== [BLOCK: 滚动条隐藏] ========== */
+.page::-webkit-scrollbar,
+.app-view::-webkit-scrollbar {
+  display: none;
+}
+
+.page,
+.app-view {
+  scrollbar-width: none;-ms-overflow-style: none;
+}
+/* ========== [/BLOCK: 滚动条隐藏] ========== */
+
+/* ========== [BLOCK: 通用工具类] ========== */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.text-center { text-align: center; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+/* ========== [/BLOCK: 通用工具类] ========== */
