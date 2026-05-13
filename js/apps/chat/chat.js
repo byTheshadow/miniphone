@@ -148,6 +148,8 @@ const ChatApp = (() => {
     loadData();
     const $content = document.getElementById('app-content');
     // 重置 app-view 的 overflow，让内部自己管理滚动
+    // 强制设置背景色
+  $appView.style.background = 'var(--chat-bg)';
     const $appView = document.getElementById('app-view');
     $appView.style.overflowY = 'hidden';
     $appView.style.padding = '0';
