@@ -1,0 +1,122 @@
+/* ========== [BLOCK: 小组件通用基础] ========== */
+.widget {
+  background: var(--bg-widget);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-secondary);
+  padding: var(--space-md);
+  overflow: hidden;
+  position: relative;
+  transition: transform var(--duration-fast) var(--ease-out);
+  cursor: pointer;
+}
+
+.widget:active {
+  transform: scale(0.97);
+}
+
+.widget__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.widget__icon {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.widget__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+/* ========== [/BLOCK: 小组件通用基础] ========== */
+
+/* ========== [BLOCK: 小组件尺寸] ========== */
+.widget--small {
+  /* 2x2 格*/
+  grid-column: span 2;
+}
+
+.widget--medium {
+  /* 4x2 格，占满宽度 */
+  grid-column: span 4;
+}
+
+.widget--large {
+  /* 4x4 格 */
+  grid-column: span 4;
+  min-height: 160px;
+}
+/* ========== [/BLOCK: 小组件尺寸] ========== */
+
+/* ========== [BLOCK: 时钟小组件] ========== */
+.widget-clock .clock__time {
+  font-size: 48px;
+  font-weight: 200;
+  color: var(--text-primary);
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+.widget-clock .clock__date {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: var(--space-xs);
+}
+
+.widget-clock .clock__seconds {
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-tertiary);
+  vertical-align: super;
+  margin-left: 2px;
+}
+/* ========== [/BLOCK: 时钟小组件] ========== */
+
+/* ========== [BLOCK: 天气小组件] ========== */
+.widget-weather .weather__temp {
+  font-size: 42px;
+  font-weight: 200;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.widget-weather .weather__desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: var(--space-xs);
+}
+
+.widget-weather .weather__icon {
+  font-size: 36px;
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+}
+/* ========== [/BLOCK: 天气小组件] ========== */
+
+/* ========== [BLOCK: 快捷备忘小组件] ========== */
+.widget-memo .memo__text {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* ========== [/BLOCK: 快捷备忘小组件] ========== */
+
+/* ========== [BLOCK: 小组件网格布局] ========== */
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-sm);
+}
+/* ========== [/BLOCK: 小组件网格布局] ========== */
