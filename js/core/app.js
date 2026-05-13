@@ -263,20 +263,21 @@ const MiniApp = (() => {
   }
   /* ========== 更新指示器 结束 ========== */
 
-  /* ========== 滑动手势绑定 开始 ========== */
-  function bindSwipe() {
-    const target = document.getElementById('home-screen');
+/* ========== 滑动手势绑定 开始 ========== */
+function bindSwipe() {
+  const target = document.getElementById('home-screen');
 
-    target.addEventListener('touchstart', onTouchStart, { passive: true });
-    target.addEventListener('touchmove', onTouchMove, { passive: false });
-    target.addEventListener('touchend', onTouchEnd, { passive: true });
+  target.addEventListener('touchstart', onTouchStart, { passive: true });
+  target.addEventListener('touchmove', onTouchMove, { passive: false });
+  target.addEventListener('touchend', onTouchEnd, { passive: true });
 
-    //鼠标支持（桌面端）
-    target.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }
-  /* ========== 滑动手势绑定 结束 ========== */
+  // 鼠标支持（桌面端）
+  target.addEventListener('mousedown', onMouseDown);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
+/* ========== 滑动手势绑定 结束 ========== */
+
 
   /* ========== Touch 事件处理 开始 ========== */
   function onTouchStart(e) {
