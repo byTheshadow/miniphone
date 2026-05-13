@@ -1,27 +1,29 @@
+/* 在文件最顶部，.chat-app 之前加 */
+.app-view.open {
+  background: #f5f5f7 !important;
+  backdrop-filter: none !important;
+}
+
+.theme-dark .app-view.open {
+  background: #000000 !important;
+}
+
 /* ========== Chat App 根容器 开始 ========== */
 .chat-app {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  background: var(--chat-bg);
+  background: transparent; /* 改成透明 */
   overflow: hidden;
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 100; /* 确保在主屏幕之上 */
-}
-/* ========== Chat App 根容器 结束 ========== */
-/* 在 chat.css 里 */
-.app-view.open {
-  background: #f5f5f7 !important; /* 默认浅色 */
-  backdrop-filter: none !important;
+  z-index: 100;
 }
 
-/* 深色模式：通过父级选择器 */
-.theme-dark ~ .app-view.open {
-  background: #000000 !important;
-}
+/* ========== Chat App 根容器 结束 ========== */
+
 
 
 /* ========== Chat 主题变量 开始 ========== */
