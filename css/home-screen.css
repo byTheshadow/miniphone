@@ -1,21 +1,54 @@
-/* ========== [BLOCK: 主屏幕布局] ========== */
+/* ========== [BLOCK: 主屏幕容器 — 多页横向滚动] ========== */
 .home-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: row;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.home-screen::-webkit-scrollbar {
+  display: none;
+}
+/* ========== [/BLOCK: 主屏幕容器 — 多页横向滚动] ========== */
+
+/* ========== [BLOCK: 单页布局] ========== */
+.home-page {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   padding: var(--space-md) var(--space-md) 0;
   gap: var(--space-md);
+  /* 纵向内容超出时可滚动 */
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 110px; /* 给dock 留空间 */
+  /* 给 Dock + 指示点留空间 */
+  padding-bottom: 120px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-/* ========== [/BLOCK: 主屏幕布局] ========== */
+
+.home-page::-webkit-scrollbar {
+  display: none;
+}
+/* ========== [/BLOCK: 单页布局] ========== */
 
 /* ========== [BLOCK: 小组件区域] ========== */
 .widget-area {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  padding: 0 var(--space-xs);
 }
 /* ========== [/BLOCK: 小组件区域] ========== */
 
@@ -52,19 +85,19 @@
   align-items: center;
   justify-content: center;
   font-size: 30px;
-  background: var(--bg-app-icon);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-secondary);
   overflow: hidden;
   position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .app-icon img {
   width: 100%;
   height: 100%;
-  object-fit: cover;border-radius: inherit;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 .app-icon__badge {
@@ -92,7 +125,8 @@
   max-width: 68px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 /* ========== [/BLOCK: 单个 App 图标] ========== */
 
@@ -124,7 +158,6 @@
   width: 52px;
   height: 52px;
   font-size: 26px;
-  background: var(--bg-app-icon);
 }
 
 .dock .app-icon-label {
@@ -132,67 +165,10 @@
 }
 /* ========== [/BLOCK: Dock 栏] ========== */
 
-/* ========== [BLOCK: 页面搜索栏（可选）] ========== */
-.search-pill {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--bg-blur);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-secondary);color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: background var(--duration-fast);
-}
-
-.search-pill:hover {
-  background: var(--bg-widget);
-}
-/* ========== [/BLOCK: 页面搜索栏（可选）] ========== */
-/* ========== [BLOCK: 多页主屏幕] ========== */
-.home-screen {
-  /* 覆盖原来的 flex-direction:column，改为横向滚动容器 */
-  display: flex;
-  flex-direction: row;
-  overflow-x: scroll;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  padding: 0;
-  gap: 0;
-}
-
-.home-screen::-webkit-scrollbar {
-  display: none;
-}
-
-/* 每一页 */
-.home-page {
-  flex: 0 0 100%;
-  width: 100%;
-  height: 100%;
-  scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-md) var(--space-md) 0;
-  gap: var(--space-md);
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: 110px;
-}
-
-.home-page::-webkit-scrollbar {
-  display: none;
-}
-/* ========== [/BLOCK: 多页主屏幕] ========== */
-
 /* ========== [BLOCK: 页面指示点] ========== */
 .page-dots {
   position: fixed;
-  bottom: calc(var(--safe-bottom) + 80px);
+  bottom: calc(var(--safe-bottom) + 76px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -207,7 +183,7 @@
   border-radius: var(--radius-full);
   background: var(--text-primary);
   opacity: 0.3;
-  transition: opacity var(--duration-fast), width var(--duration-fast);
+  transition: opacity var(--duration-normal), width var(--duration-normal);
 }
 
 .page-dot.active {
@@ -215,3 +191,26 @@
   width: 18px;
 }
 /* ========== [/BLOCK: 页面指示点] ========== */
+
+/* ========== [BLOCK: 搜索栏（可选）] ========== */
+.search-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-blur);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.search-pill:hover {
+  background: var(--bg-widget);
+}
+/* ========== [/BLOCK: 搜索栏（可选）] ========== */
+
