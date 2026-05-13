@@ -144,23 +144,24 @@ const ChatApp = (() => {
   /* ========== 工具函数 结束 ========== */
 
   /* ========== App 入口 开始 ========== */
-  function open() {
-    loadData();
-    const $content = document.getElementById('app-content');
-    // 重置 app-view 的 overflow，让内部自己管理滚动
-    // 强制设置背景色
+function open() {
+  loadData();
+  const $content = document.getElementById('app-content');
+  const $appView = document.getElementById('app-view'); // 先定义
+  
+  // 然后再使用
   $appView.style.background = 'var(--chat-bg)';
-    const $appView = document.getElementById('app-view');
-    $appView.style.overflowY = 'hidden';
-    $appView.style.padding = '0';
+  $appView.style.overflowY = 'hidden';
+  $appView.style.padding = '0';
 
-    $content.style.padding = '0';
-    $content.style.minHeight = 'unset';
-    $content.style.height = '100%';
+  $content.style.padding = '0';
+  $content.style.minHeight = 'unset';
+  $content.style.height = '100%';
 
-    renderListView($content);
-  }
-  /* ========== App 入口 结束 ========== */
+  renderListView($content);
+}
+/* ========== App 入口 结束 ========== */
+
 
   /* ========== 聊天列表视图 开始 ========== */
   function renderListView($container) {
