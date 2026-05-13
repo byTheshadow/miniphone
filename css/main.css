@@ -1,0 +1,524 @@
+/* ========== CSS Reset 开始 ========== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  background: #000;
+}
+
+input, button, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+/* ========== CSS Reset 结束 ========== */
+
+
+/* ========== 浅色主题变量 开始 ========== */
+.theme-light {
+  --bg-primary: rgba(255, 255, 255, 0.72);
+  --bg-secondary: rgba(255, 255, 255, 0.55);
+  --bg-tertiary: rgba(255, 255, 255, 0.35);
+  --bg-dock: rgba(255, 255, 255, 0.45);
+  --bg-widget: rgba(255, 255, 255, 0.65);
+  --bg-settings: rgba(245, 245, 247, 0.88);
+  --bg-input: rgba(255, 255, 255, 0.6);
+
+  --glass-blur: 40px;
+  --glass-saturate: 1.8;
+  --glass-border: rgba(255, 255, 255, 0.5);
+
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(0, 0, 0, 0.55);
+  --text-tertiary: rgba(0, 0, 0, 0.35);
+  --text-on-accent: #ffffff;
+  --text-icon-label: #ffffff;
+  --text-icon-label-shadow: rgba(0, 0, 0, 0.6);
+
+  --accent: #007AFF;
+  --accent-hover: #0066DD;
+  --accent-light: rgba(0, 122, 255, 0.12);
+  --danger: #FF3B30;
+  --success: #34C759;
+  --warning: #FF9500;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(255, 255, 255, 0.5);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --shadow-widget: 0 2px 16px rgba(0,0,0,0.08);
+
+  --status-bar-color: #000;
+  --home-indicator-color: rgba(0,0,0,0.25);
+
+  --wallpaper-default: linear-gradient(145deg, #667eea 0%, #764ba2 30%, #f093fb 60%, #f5576c 100%);
+}
+/* ========== 浅色主题变量 结束 ========== */
+
+
+/* ========== 深色主题变量 开始 ========== */
+.theme-dark {
+  --bg-primary: rgba(30, 30, 32, 0.78);
+  --bg-secondary: rgba(44, 44, 48, 0.65);
+  --bg-tertiary: rgba(58, 58, 62, 0.45);
+  --bg-dock: rgba(30, 30, 32, 0.55);
+  --bg-widget: rgba(44, 44, 48, 0.6);
+  --bg-settings: rgba(28, 28, 30, 0.92);
+  --bg-input: rgba(58, 58, 62, 0.6);
+
+  --glass-blur: 40px;
+  --glass-saturate: 1.8;
+  --glass-border: rgba(255, 255, 255, 0.12);
+
+  --text-primary: rgba(255, 255, 255, 0.92);
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-tertiary: rgba(255, 255, 255, 0.3);
+  --text-on-accent: #ffffff;
+  --text-icon-label: rgba(255, 255, 255, 0.92);
+  --text-icon-label-shadow: rgba(0, 0, 0, 0.8);
+
+  --accent: #0A84FF;
+  --accent-hover: #409CFF;
+  --accent-light: rgba(10, 132, 255, 0.18);
+  --danger: #FF453A;
+  --success: #30D158;
+  --warning: #FF9F0A;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.12);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+  --shadow-widget: 0 2px 16px rgba(0,0,0,0.25);
+
+  --status-bar-color: #fff;
+  --home-indicator-color: rgba(255,255,255,0.35);
+
+  --wallpaper-default: linear-gradient(145deg, #0f0c29 0%, #302b63 40%, #24243e 100%);
+}
+/* ========== 深色主题变量 结束 ========== */
+
+
+/* ========== 毛玻璃通用 Mixin 开始 ========== */
+.glass {
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 0.5px solid var(--glass-border);
+}
+/* ========== 毛玻璃通用 Mixin 结束 ========== */
+
+
+/* ========== 主容器 开始 ========== */
+.miniphone {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--wallpaper-default);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  transition: background0.3s ease;
+}
+/* ========== 主容器 结束 ========== */
+
+
+/* ========== 状态栏 开始 ========== */
+.status-bar {
+  position: relative;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 20px;
+  color: var(--status-bar-color);
+  flex-shrink: 0;
+  transition: height 0.3s ease, opacity 0.3s ease, margin0.3s ease;
+}
+
+.status-bar.hidden {
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.status-bar__left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.status-bar__time {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.status-bar__center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.status-bar__notch {
+  width: 120px;
+  height: 28px;
+  background: #000;
+  border-radius: 0 0 18px 18px;
+  display: none; /* 默认隐藏灵动岛，可选开启 */
+}
+
+.status-bar__right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.status-bar__icon {
+  display: flex;
+  align-items: center;
+}
+
+.status-bar__battery {
+  display: flex;
+  align-items: center;
+}
+/* ========== 状态栏 结束 ========== */
+
+
+/* ========== 底部横条 开始 ========== */
+.home-indicator {
+  position: relative;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+
+.home-indicator__bar {
+  width: 134px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--home-indicator-color);
+}
+/* ========== 底部横条 结束 ========== */
+
+
+/* ========== 设置面板 开始 ========== */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.settings-panel.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settings-panel__glass {
+  width: 92%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg-settings);
+  backdrop-filter: blur(60px) saturate(1.8);
+  -webkit-backdrop-filter: blur(60px) saturate(1.8);
+  border-radius: 20px;
+  border: 0.5px solid var(--glass-border);
+  box-shadow: var(--shadow-lg);
+  padding: 24px;
+  transform: scale(0.92);
+  transition: transform 0.3s ease;
+}
+
+.settings-panel.open .settings-panel__glass {
+  transform: scale(1);
+}
+
+.settings-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.settings-panel__header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.settings-panel__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.settings-panel__close:hover {
+  background: var(--border);
+}
+
+.settings-group {
+  margin-bottom: 20px;
+}
+
+.settings-group__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border-radius: 12px;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  gap: 10px;
+}
+
+.settings-item--col {
+  flex-direction: column;
+  align-items: flex-start;gap: 6px;
+}
+
+.settings-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  border: 0.5px solid var(--border);
+  transition: border-color 0.2s;
+}
+
+.settings-input:focus {
+  border-color: var(--accent);
+}
+
+.settings-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.settings-btn {
+  padding: 8px 18px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.settings-btn:hover {
+  background: var(--accent-hover);
+}
+
+.settings-btn--secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.settings-btn--secondary:hover {
+  background: var(--border);
+}
+/* ========== 设置面板 结束 ========== */
+
+
+/* ========== Toggle 开关 开始 ========== */
+.toggle-switch {
+  position: relative;
+  width: 51px;
+  height: 31px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch__slider {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-tertiary);
+  border-radius: 31px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggle-switch__slider::before {
+  content: '';
+  position: absolute;
+  width: 27px;
+  height: 27px;
+  left: 2px;
+  bottom: 2px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-switch__slider {
+  background: var(--success);
+}
+
+.toggle-switch input:checked + .toggle-switch__slider::before {
+  transform: translateX(20px);
+}
+/* ========== Toggle 开关 结束 ========== */
+
+
+/* ========== Toast 提示 开始 ========== */
+.toast-container {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 10px 22px;
+  background: var(--bg-primary);
+  backdrop-filter: blur(30px) saturate(1.6);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6);
+  border-radius: 14px;
+  border: 0.5px solid var(--glass-border);
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+  pointer-events: auto;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-12px) scale(0.95); }
+}
+/* ========== Toast 提示 结束 ========== */
+
+
+/* ========== App 全屏视图 开始 ========== */
+.app-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5000;
+  background: var(--bg-settings);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  overflow-y: auto;
+}
+
+.app-view.open {
+  transform: translateY(0);
+}
+
+.app-view__content {
+  min-height: 100%;
+  padding: 60px 20px 40px;
+}
+/* ========== App 全屏视图 结束 ========== */
+
+
+/* ==========滚动条美化 开始 ========== */
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: 3px;
+}
+/* ========== 滚动条美化 结束 ========== */
