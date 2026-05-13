@@ -1,0 +1,154 @@
+/* ========== [BLOCK: 主屏幕布局] ========== */
+.home-screen {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-md) var(--space-md) 0;
+  gap: var(--space-md);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 110px; /* 给dock 留空间 */
+}
+/* ========== [/BLOCK: 主屏幕布局] ========== */
+
+/* ========== [BLOCK: 小组件区域] ========== */
+.widget-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-xs);
+}
+/* ========== [/BLOCK: 小组件区域] ========== */
+
+/* ========== [BLOCK: App 图标网格] ========== */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-lg) var(--space-sm);
+  padding: var(--space-sm) var(--space-xs);
+}
+/* ========== [/BLOCK: App 图标网格] ========== */
+
+/* ========== [BLOCK: 单个 App 图标] ========== */
+.app-icon-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.app-icon-wrapper:active {
+  transform: scale(0.88);
+}
+
+.app-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: var(--bg-app-icon);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-secondary);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;border-radius: inherit;
+}
+
+.app-icon__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.app-icon-label {
+  font-size: 11px;
+  color: var(--text-primary);
+  text-align: center;
+  max-width: 68px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+/* ========== [/BLOCK: 单个 App 图标] ========== */
+
+/* ========== [BLOCK: Dock 栏] ========== */
+.dock {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-blur);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-secondary);
+  z-index: var(--z-dock);
+  max-width: calc(100% - 32px);
+}
+
+.dock .app-icon-wrapper {
+  gap: 0;
+}
+
+.dock .app-icon {
+  width: 52px;
+  height: 52px;
+  font-size: 26px;
+  background: var(--bg-app-icon);
+}
+
+.dock .app-icon-label {
+  display: none;
+}
+/* ========== [/BLOCK: Dock 栏] ========== */
+
+/* ========== [BLOCK: 页面搜索栏（可选）] ========== */
+.search-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-blur);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-secondary);color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.search-pill:hover {
+  background: var(--bg-widget);
+}
+/* ========== [/BLOCK: 页面搜索栏（可选）] ========== */
