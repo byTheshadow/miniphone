@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>MiniPhone AI</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/phone-shell.css" />
+  <link rel="stylesheet" href="css/chat.css" />
+  <link rel="stylesheet" href="css/apps.css" />
+</head>
+<body>
+  <!-- 手機外殼 -->
+  <div class="phone-container">
+    <div class="phone-shell">
+      <!-- 狀態列 -->
+      <div class="status-bar">
+        <span class="status-time" id="statusTime">12:00</span>
+        <div class="status-icons">
+          <span class="status-signal">●●●</span>
+          <span class="status-wifi">WiFi</span>
+          <span class="status-battery">🔋</span>
+        </div>
+      </div>
+
+      <!-- 動態島 / 瀏海 -->
+      <div class="dynamic-island"></div>
+
+      <!-- App 畫面容器 -->
+      <div class="screen" id="screen">
+
+        <!-- ======== 主畫面 (Home) ======== -->
+        <div class="app-view active" id="view-home">
+          <div class="home-wallpaper"></div>
+          <div class="home-apps-grid">
+            <div class="app-icon" data-app="chat">
+              <div class="app-icon-img">💬</div>
+              <span>聊天</span>
+            </div>
+            <div class="app-icon" data-app="calendar">
+              <div class="app-icon-img">📅</div>
+              <span>日曆</span>
+            </div>
+            <div class="app-icon" data-app="music">
+              <div class="app-icon-img">🎵</div>
+              <span>音樂</span>
+            </div>
+            <div class="app-icon" data-app="ledger">
+              <div class="app-icon-img">💰</div>
+              <span>記帳</span>
+            </div>
+            <div class="app-icon" data-app="pet">
+              <div class="app-icon-img">🐾</div>
+              <span>寵物</span>
+            </div>
+            <div class="app-icon" data-app="ticket">
+              <div class="app-icon-img">💌</div>
+              <span>戀愛小票</span>
+            </div>
+            <div class="app-icon" data-app="rp">
+              <div class="app-icon-img">📖</div>
+              <span>RP / 學術</span>
+            </div>
+            <div class="app-icon" data-app="settings">
+              <div class="app-icon-img">⚙️</div>
+              <span>設定</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======== 聊天列表 ======== -->
+        <div class="app-view" id="view-chat">
+          <div class="app-header">
+            <button class="btn-back" onclick="App.goBack()">‹</button>
+            <h1>聊天</h1>
+            <button class="btn-icon" id="btnNewChat" onclick="Chat.openNewCharModal()">+</button>
+          </div>
+          <div class="chat-list" id="chatList">
+            <!-- 動態生成 -->
+          </div>
+        </div>
+
+        <!-- ======== 聊天室 ======== -->
+        <div class="app-view" id="view-chatroom">
+          <div class="app-header chatroom-header">
+            <button class="btn-back" onclick="App.navigate('chat')">‹</button>
+            <div class="chatroom-title">
+              <img class="chatroom-avatar" id="chatroomAvatar" src="" alt="" />
+              <div>
+                <div class="chatroom-name" id="chatroomName">...</div>
+                <div class="chatroom-status" id="chatroomStatus">AI 角色</div>
+              </div>
+            </div>
+            <button class="btn-icon" onclick="Chat.openCharInfo()">⋯</button>
+          </div>
+          <div class="messages-container" id="messagesContainer"></div>
+          <div class="chat-input-bar">
+            <button class="btn-icon" onclick="Chat.sendEmoji()">😊</button>
+            <textarea class="chat-input" id="chatInput" placeholder="輸入訊息…" rows="1"></textarea>
+            <button class="btn-send" id="btnSend" onclick="Chat.sendMessage()">➤</button>
+          </div>
+        </div>
+
+        <!-- ======== 設定 ======== -->
+        <div class="app-view" id="view-settings">
+          <div class="app-header">
+            <button class="btn-back" onclick="App.goBack()">‹</button>
+            <h1>設定</h1>
+          </div>
+          <div class="settings-list">
+            <div class="settings-section">
+              <div class="settings-section-title">AI 設定</div>
+              <div class="settings-item">
+                <label for="apiKeyInput">API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+                <button class="btn-save" onclick="Settings.saveApiKey()">儲存</button>
+              </div>
+              <div class="settings-item">
+                <label>預設模型</label>
+                <select id="modelSelect">
+                  <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+                  <option value="claude-opus-4-5">Claude Opus 4.5</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section-title">個人設定</div>
+              <div class="settings-item">
+                <label for="userNameInput">我的名字</label>
+                <input type="text" id="userNameInput" placeholder="輸入你的名字" />
+              </div>
+              <div class="settings-item">
+                <label for="userPersonaInput">我的人設</label>
+                <textarea id="userPersonaInput" placeholder="描述你的角色設定…" rows="3"></textarea>
+                <button class="btn-save" onclick="Settings.saveUserProfile()">儲存</button>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section-title">資料管理</div>
+              <div class="settings-item">
+                <button class="btn-secondary" onclick="Storage.exportAll()">匯出全部資料</button>
+                <button class="btn-danger" onclick="Settings.clearAll()">清除所有資料</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======== 日曆（佔位） ======== -->
+        <div class="app-view" id="view-calendar">
+          <div class="app-header">
+            <button class="btn-back" onclick="App.goBack()">‹</button>
+            <h1>日曆</h1>
+          </div>
+          <div class="coming-soon">📅<br/>日曆功能<br/>即將推出</div>
+        </div>
+
+        <!-- ======== 音樂（佔位） ======== -->
+        <div class="app-view" id="view-music">
+          <div class="app-header">
+            <button class="btn-back" onclick="App.goBack()">‹</button>
+            <h1>音樂</h1>
+          </div>
+          <div class="coming-soon">🎵<br/>音樂播放器<br/>即將推出</div>
+        </div>
+
+        <!-- ======== 記帳（佔位） ======== -->
+        <div class="app-view" id="view-ledger">
+          <div class="app-header">
+            <button class="btn-back" onclick="App.goBack()">‹</button>
+            <h1>記帳</h1>
+          </div>
+          <div class="coming-soon">💰<br/>記帳功能<br/>即將推出</div>
+        </div>
+
+        <!-- ======== 寵物（佔位） ======== -->
+        <div class="app-view" id="view-pet">
+          <div class="app-header">
+            <button class="btn-back" onclick="App.goBack()">‹</button>
+            <h1>寵物</h1>
+          </div>
+          <div class="coming-soon">🐾<br/>寵物管理<br/>即將推出</div>
+        </div>
+
+        <!-- ======== 戀愛小票（佔位） ======== -->
+        <div class="app-view" id="view-ticket">
+          <div class="app-header">
+            <button class="btn-back" onclick="App.goBack()">‹</button>
+            <h1>戀愛小票</h1>
+          </div>
+          <div class="coming-soon">💌<br/>戀愛小票<br/>即將推出</div>
+        </div>
+
+        <!-- ======== RP / 學術（佔位） ======== -->
+        <div class="app-view" id="view-rp">
+          <div class="app-header">
+            <button class="btn-back" onclick="App.goBack()">‹</button>
+            <h1>RP / 學術</h1>
+          </div>
+          <div class="coming-soon">📖<br/>RP / 學術模式<br/>即將推出</div>
+        </div>
+
+      </div><!-- /screen -->
+
+      <!-- 底部導航列 -->
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="App.navigate('home')">
+          <span class="nav-icon">⊞</span>
+          <span>主畫面</span>
+        </button>
+        <button class="nav-btn" onclick="App.navigate('chat')">
+          <span class="nav-icon">💬</span>
+          <span>聊天</span>
+        </button>
+        <button class="nav-btn" onclick="App.navigate('settings')">
+          <span class="nav-icon">⚙️</span>
+          <span>設定</span>
+        </button>
+      </div>
+
+      <!-- 底部指示條 -->
+      <div class="home-indicator"></div>
+    </div><!-- /phone-shell -->
+  </div><!-- /phone-container -->
+
+  <!-- ======== Modals ======== -->
+
+  <!-- 新建角色卡 Modal -->
+  <div class="modal-overlay" id="modalNewChar">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>新增聯絡人</h2>
+        <button class="modal-close" onclick="Chat.closeNewCharModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>角色名稱 *</label>
+          <input type="text" id="newCharName" placeholder="例：小雨" />
+        </div>
+        <div class="form-group">
+          <label>頭像 URL（選填）</label>
+          <input type="text" id="newCharAvatar" placeholder="https://..." />
+        </div>
+        <div class="form-group">
+          <label>人設描述 *</label>
+          <textarea id="newCharPersona" rows="4" placeholder="描述這個角色的性格、背景…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>開場白（選填）</label>
+          <input type="text" id="newCharGreeting" placeholder="角色的第一句話" />
+        </div>
+        <div class="form-group">
+          <label>氣泡顏色</label>
+          <input type="color" id="newCharColor" value="#7c6af7" />
+        </div>
+        <div class="form-group">
+          <label>使用模型</label>
+          <select id="newCharModel">
+            <option value="claude-sonnet-4-5">Claude Sonnet 4.5（推薦）</option>
+            <option value="claude-opus-4-5">Claude Opus 4.5（深度 RP）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>或匯入角色卡 JSON</label>
+          <input type="file" id="importCharJson" accept=".json" onchange="Chat.importCharJson(event)" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="Chat.closeNewCharModal()">取消</button>
+        <button class="btn-primary" onclick="Chat.createChar()">建立</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 通知 -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Scripts -->
+  <script src="js/core/storage.js"></script>
+  <script src="js/api/claude.js"></script>
+  <script src="js/api/summarizer.js"></script>
+  <script src="js/api/key-manager.js"></script>
+  <script src="js/apps/chat/chat.js"></script>
+  <script src="js/core/app.js"></script>
+</body>
+</html>
