@@ -1,4 +1,13 @@
 /* ========== Chat App 样式 开始 ========== */
+/* 在 .chat-app 之前加这个 */
+.app-view.open {
+  background: #f5f5f7 !important; /* 浅色模式 */
+  backdrop-filter: none !important;
+}
+
+.theme-dark .app-view.open {
+  background: #000000 !important; /* 深色模式 */
+}
 
 /* ========== Chat App 根容器 开始 ========== */
 .chat-app {
