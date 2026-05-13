@@ -1,105 +1,172 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
-  <title>MiniPhone</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>MiniPhone</title>
 
-  <!--========== [BLOCK: 样式引入] ========== -->
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/home-screen.css">
-  <link rel="stylesheet" href="css/status-bar.css">
-  <link rel="stylesheet" href="css/widgets.css">
-  <!-- ========== [/BLOCK: 样式引入] ========== -->
+<!--========== 预加载字体 开始 ========== -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- ========== 预加载字体 结束 ========== -->
 
+<!-- ========== 样式引入 开始 ========== -->
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/homescreen.css">
+<!-- ========== 样式引入 结束 ========== -->
 </head>
 <body>
 
-  <!-- ========== [BLOCK: 应用根容器] ========== -->
-  <div id="app">
-
-    <!-- ========== [BLOCK: 状态栏] ========== -->
-    <div id="status-bar" class="status-bar">
-      <div class="status-bar__left">
-        <span id="status-time" class="status-bar__time"></span>
-      </div>
-      <div class="status-bar__center">
-        <span id="status-notch" class="status-bar__notch"></span>
-      </div>
-      <div class="status-bar__right">
-        <span class="status-bar__icon" id="status-signal">📶</span>
-        <span class="status-bar__icon" id="status-wifi">📡</span>
-        <span class="status-bar__icon" id="status-battery">🔋</span>
-      </div>
+<!-- ========== 主屏幕容器 开始 ========== -->
+<div id="miniphone" class="miniphone theme-light"><!-- ========== 状态栏 开始 ========== -->
+  <div id="status-bar" class="status-bar">
+    <div class="status-bar__left">
+      <span id="status-time" class="status-bar__time">12:00</span>
     </div>
-    <!-- ========== [/BLOCK: 状态栏] ========== -->
-
-    <!-- ========== [BLOCK: 页面容器] ========== -->
-    <div id="page-container" class="page-container">
-
-      <!-- ========== [BLOCK: 主屏幕] ========== -->
-      <div id="home-screen" class="page home-screen active">
-
-        <!-- ========== [BLOCK: 小组件区域] ========== -->
-        <div id="widget-area" class="widget-area"></div>
-        <!-- ========== [/BLOCK: 小组件区域] ========== -->
-
-        <!-- ========== [BLOCK: App 图标网格] ========== -->
-        <div id="app-grid" class="app-grid"></div>
-        <!-- ========== [/BLOCK: App 图标网格] ========== -->
-
-        <!-- ========== [BLOCK: Dock栏] ========== -->
-        <div id="dock" class="dock"></div>
-        <!-- ========== [/BLOCK: Dock 栏] ========== --></div>
-      <!-- ========== [/BLOCK: 主屏幕] ========== -->
-
-      <!-- ========== [BLOCK: App 页面（动态注入）] ========== -->
-      <div id="app-view" class="page app-view"></div>
-      <!-- ========== [/BLOCK: App 页面（动态注入）] ========== -->
-
+    <div class="status-bar__center">
+      <div class="status-bar__notch"></div>
     </div>
-    <!-- ========== [/BLOCK: 页面容器] ========== -->
-
-    <!-- ========== [BLOCK: 全局 Home 指示条] ========== -->
-    <div id="home-indicator" class="home-indicator" title="返回主屏幕"></div>
-    <!-- ========== [/BLOCK: 全局 Home 指示条] ========== -->
-
+    <div class="status-bar__right">
+      <span class="status-bar__icon">
+        <!-- 信号图标 -->
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor">
+          <rect x="0" y="9" width="3" height="3" rx="0.5"/>
+          <rect x="4.5" y="6" width="3" height="6" rx="0.5"/>
+          <rect x="9" y="3" width="3" height="9" rx="0.5"/>
+          <rect x="13.5" y="0" width="3" height="12" rx="0.5" opacity="0.35"/>
+        </svg>
+      </span>
+      <span class="status-bar__icon">
+        <!-- WiFi图标 -->
+        <svg width="15" height="12" viewBox="0 0 15 12" fill="currentColor">
+          <path d="M7.5 10.2a1.4 1.4 0 110 2.8 1.4 1.4 0 010-2.8z" transform="translate(0,-1.5)"/>
+          <path d="M4.05 9.15a4.9 4.9 0 016.9 0" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" transform="translate(0,-1.5)"/>
+          <path d="M1.4 6.5a8.6 8.6 0 0112.2 0" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" transform="translate(0,-1.5)"/>
+        </svg>
+      </span>
+      <span class="status-bar__battery">
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="currentColor">
+          <rect x="0" y="0.5" width="21" height="11" rx="2.5" stroke="currentColor" stroke-width="1" fill="none"/>
+          <rect x="1.5" y="2" width="16" height="8" rx="1.2" fill="currentColor"/>
+          <path d="M234v4a2 2 0 000-4z" fill="currentColor" opacity="0.5"/>
+        </svg>
+      </span>
+    </div>
   </div>
-  <!-- ========== [/BLOCK: 应用根容器] ========== -->
+  <!-- ========== 状态栏 结束 ========== -->
 
-  <!-- ========== [BLOCK: 全局弹层容器] ========== -->
-  <div id="modal-root"></div>
-  <div id="toast-root"></div>
-  <!-- ========== [/BLOCK: 全局弹层容器] ========== -->
+  <!-- ========== 主屏幕滑动区域 开始 ========== -->
+  <div id="home-screen" class="home-screen">
+    <div id="pages-container" class="pages-container">
+      <!-- 页面由JS 动态生成 -->
+    </div>
+  </div>
+  <!-- ========== 主屏幕滑动区域 结束 ========== -->
 
-  <!-- ========== [BLOCK: 脚本引入] ========== -->
-  <script src="js/core/storage.js"></script>
-  <script src="js/core/store.js"></script>
-  <script src="js/core/router.js"></script>
-  <script src="js/ui/toast.js"></script>
-  <script src="js/ui/modal.js"></script>
-  <script src="js/ui/widget-system.js"></script>
-  <script src="js/ui/home-screen.js"></script>
-  <script src="js/ui/app-icon.js"></script>
-  <script src="js/api/openai-compatible.js"></script>
-  <script src="js/api/key-manager.js"></script>
-  <script src="js/core/app.js"></script>
-  <!-- ========== [/BLOCK: 脚本引入] ========== -->
+  <!-- ========== 页面指示器 开始 ========== -->
+  <div id="page-dots" class="page-dots">
+    <!-- 由 JS 动态生成 -->
+  </div>
+  <!-- ========== 页面指示器 结束 ========== -->
 
-  <!-- ========== [BLOCK: Service Worker 注册] ========== -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(function(err) {
-        console.warn('[SW] 注册失败:', err);
-      });
-    }
-  </script>
-  <!-- ========== [/BLOCK: Service Worker 注册] ========== -->
+  <!-- ========== 底部 Dock栏 开始 ========== -->
+  <div id="dock" class="dock">
+    <div class="dock__glass"></div>
+    <div id="dock-icons" class="dock__icons">
+      <!-- 由 JS 动态生成 -->
+    </div>
+  </div>
+  <!-- ========== 底部 Dock 栏 结束 ========== -->
+
+  <!-- ========== 底部横条 开始 ========== -->
+  <div class="home-indicator">
+    <div class="home-indicator__bar"></div>
+  </div>
+  <!-- ========== 底部横条 结束 ========== -->
+
+</div>
+<!-- ========== 主屏幕容器 结束 ========== -->
+
+<!-- ========== App 全屏视图容器 开始 ========== -->
+<div id="app-view" class="app-view">
+  <div id="app-content" class="app-view__content"></div>
+</div>
+<!-- ========== App 全屏视图容器 结束 ========== -->
+
+<!-- ========== 设置面板 开始 ========== -->
+<div id="settings-panel" class="settings-panel">
+  <div class="settings-panel__glass">
+    <div class="settings-panel__header">
+      <h2>⚙️ 设置</h2>
+      <button id="settings-close" class="settings-panel__close">✕</button>
+    </div>
+    <div class="settings-panel__body">
+
+      <!-- 主题切换 -->
+      <div class="settings-group">
+        <div class="settings-group__title">外观</div>
+        <div class="settings-item">
+          <span>深色模式</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-dark-mode">
+            <span class="toggle-switch__slider"></span>
+          </label>
+        </div>
+        <div class="settings-item">
+          <span>显示状态栏</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-status-bar" checked>
+            <span class="toggle-switch__slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 壁纸 -->
+      <div class="settings-group">
+        <div class="settings-group__title">壁纸</div>
+        <div class="settings-item">
+          <span>壁纸 URL</span>
+          <input type="text" id="setting-wallpaper" class="settings-input" placeholder="输入图片 URL...">
+        </div>
+        <div class="settings-item">
+          <button id="setting-wallpaper-apply" class="settings-btn">应用壁纸</button>
+          <button id="setting-wallpaper-clear" class="settings-btn settings-btn--secondary">清除</button>
+        </div>
+      </div>
+
+      <!-- AI 配置 -->
+      <div class="settings-group">
+        <div class="settings-group__title">AI 配置 (OpenAI 兼容)</div>
+        <div class="settings-item settings-item--col">
+          <span>API Base URL</span>
+          <input type="text" id="setting-ai-base" class="settings-input" placeholder="https://api.openai.com/v1">
+        </div>
+        <div class="settings-item settings-item--col">
+          <span>API Key</span>
+          <input type="password" id="setting-ai-key" class="settings-input" placeholder="sk-...">
+        </div>
+        <div class="settings-item settings-item--col">
+          <span>模型名称</span>
+          <input type="text" id="setting-ai-model" class="settings-input" placeholder="gpt-4o">
+        </div>
+        <div class="settings-item">
+          <button id="setting-ai-save" class="settings-btn">保存 AI 配置</button>
+        </div>
+      </div></div>
+  </div>
+</div>
+<!-- ========== 设置面板 结束 ========== -->
+
+<!-- ========== Toast 提示容器 开始 ========== -->
+<div id="toast-container" class="toast-container"></div>
+<!-- ========== Toast 提示容器 结束 ========== -->
+
+<!-- ========== 脚本引入 开始 ========== -->
+<script src="js/core/store.js"></script>
+<script src="js/ui/widgets.js"></script>
+<script src="js/core/app.js"></script>
+<!-- ========== 脚本引入 结束 ========== -->
 
 </body>
 </html>
