@@ -484,30 +484,24 @@ img {
 /* ========== App 全屏视图 开始 ========== */
 .app-view {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: 5000;
-  background: var(--bg-settings);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  transform: translateY(100%);
-  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  background: transparent; /* 默认透明 */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px;
 }
 
 .app-view.open {
-  transform: translateY(0);
-  background: var(--bg-primary); /* 用主题变量 */
+  opacity: 1;
+  pointer-events: auto;
+  background: var(--bg-primary); /* 加这行，用主题背景色 */
+  backdrop-filter: none; /* 去掉毛玻璃 */
 }
 
-
-.app-view__content {
-  min-height: 100%;
-  padding: 60px 20px 40px;
-}
-/* ========== App 全屏视图 结束 ========== */
 
 
 /* ==========滚动条美化 开始 ========== */
