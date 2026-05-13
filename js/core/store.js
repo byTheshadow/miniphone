@@ -1,8 +1,4 @@
 /* ========== [BLOCK: MiniPhone Store 模块] ========== */
-/**
- * MiniPhone.Store
- * 轻量级全局状态管理，支持订阅/发布
- */
 var MiniPhone = window.MiniPhone || {};
 
 MiniPhone.Store = (function() {
@@ -10,15 +6,15 @@ MiniPhone.Store = (function() {
 
   /* ========== [BLOCK: 状态定义] ========== */
   var state = {
-    currentPage: 'home',        // 当前页面: home | app
-    currentApp: null,            // 当前打开的 App ID
-    theme: 'dark',               // 主题: dark | light
-    apiConfigured: false,        // API 是否已配置
-    apps: [],                    // 已注册的 App 列表
-    dockApps: [],                // Dock 栏 App ID 列表
-    widgets: [],                 // 主屏幕小组件配置
-    unreadCounts: {},            // 各App 未读数{ appId: count }
-    wallpaper: null,             // 自定义壁纸 URL（null 则用CSS 默认）
+    currentPage: 'home',
+    currentApp: null,
+    theme: 'dark',
+    apiConfigured: false,
+    apps: [],
+    dockApps: ['chat', 'music', 'calendar', 'settings'], // ← 有默认值
+    widgets: [],
+    unreadCounts: {},
+    wallpaper: null,
   };
   /* ========== [/BLOCK: 状态定义] ========== */
 
@@ -27,7 +23,8 @@ MiniPhone.Store = (function() {
 
   function on(key, callback) {
     if (!listeners[key]) listeners[key] = [];
-    listeners[key].push(callback);return function unsubscribe() {
+    listeners[key].push(callback);
+    return function unsubscribe() {
       listeners[key] = listeners[key].filter(function(cb) { return cb !== callback; });
     };
   }
@@ -58,21 +55,22 @@ MiniPhone.Store = (function() {
   /* ========== [/BLOCK: 状态读写] ========== */
 
   /* ========== [BLOCK: 持久化] ========== */
+  var PERSIST_KEYS = ['theme', 'dockApps', 'widgets', 'wallpaper'];
+
   function saveToLocal() {
-    var persistKeys = ['theme', 'dockApps', 'widgets', 'wallpaper'];
     var data = {};
-    persistKeys.forEach(function(key) {
-      data[key] = state[key];
-    });
+    PERSIST_KEYS.forEach(function(key) { data[key] = state[key]; });
     MiniPhone.Storage.local.set('store', data);
   }
 
   function loadFromLocal() {
     var data = MiniPhone.Storage.local.get('store', {});
-    Object.keys(data).forEach(function(key) {
-      if (data[key] !== null && data[key] !== undefined) {
-        state[key] = data[key];
-      }
+    PERSIST_KEYS.forEach(function(key) {
+      // 只有非 null、非 undefined、数组非空时才覆盖默认值
+      var val = data[key];
+      if (val === null || val === undefined) return;
+      if (Array.isArray(val) && val.length === 0) return;
+      state[key] = val;
     });
   }
   /* ========== [/BLOCK: 持久化] ========== */

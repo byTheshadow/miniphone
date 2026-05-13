@@ -35,8 +35,9 @@ MiniPhone.App = (function() {
     // 6. 初始化 UI 模块
     MiniPhone.AppIcon.init();
     MiniPhone.Router.init();
-    MiniPhone.HomeScreen.init();
-    MiniPhone.WidgetSystem.init();
+    MiniPhone.HomeScreen.init();   // 先渲染页面，widget-area 才存在
+    MiniPhone.WidgetSystem.init(); // 再挂载小组件
+
 
     // 7. 注册内置App
     registerBuiltinApps();

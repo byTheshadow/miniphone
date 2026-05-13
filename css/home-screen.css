@@ -152,3 +152,66 @@
   background: var(--bg-widget);
 }
 /* ========== [/BLOCK: 页面搜索栏（可选）] ========== */
+/* ========== [BLOCK: 多页主屏幕] ========== */
+.home-screen {
+  /* 覆盖原来的 flex-direction:column，改为横向滚动容器 */
+  display: flex;
+  flex-direction: row;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 0;
+  gap: 0;
+}
+
+.home-screen::-webkit-scrollbar {
+  display: none;
+}
+
+/* 每一页 */
+.home-page {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-md) var(--space-md) 0;
+  gap: var(--space-md);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 110px;
+}
+
+.home-page::-webkit-scrollbar {
+  display: none;
+}
+/* ========== [/BLOCK: 多页主屏幕] ========== */
+
+/* ========== [BLOCK: 页面指示点] ========== */
+.page-dots {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 80px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: calc(var(--z-dock) - 1);
+  pointer-events: none;
+}
+
+.page-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--text-primary);
+  opacity: 0.3;
+  transition: opacity var(--duration-fast), width var(--duration-fast);
+}
+
+.page-dot.active {
+  opacity: 0.9;
+  width: 18px;
+}
+/* ========== [/BLOCK: 页面指示点] ========== */
