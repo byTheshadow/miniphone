@@ -5,7 +5,7 @@ const AI = (() => {
 
         const url = settings.apiUrl.replace(/\/+$/, '') + '/v1/models';
         const headers = {};
-        if (settings.apiKey) headers['Authorization'] = 'Bearer ' + settings.apiKey;
+        if (settings.apiKey) headers['Authorization'] = settings.apiKey;
 
         const res = await fetch(url, { headers });
         if (!res.ok) throw new Error('Failed to fetch models: ' + res.status);
@@ -23,7 +23,7 @@ const AI = (() => {
         const headers = {
             'Content-Type': 'application/json'
         };
-        if (settings.apiKey) headers['Authorization'] = 'Bearer ' + settings.apiKey;
+        if (settings.apiKey) headers['Authorization'] = settings.apiKey;
 
         const body = {
             model: settings.model,
