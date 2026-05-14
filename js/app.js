@@ -1,6 +1,5 @@
 const App = (() => {
     let currentPage = 'home';
-    const pageHistory = ['home'];
 
     function init() {
         updateClock();
@@ -11,57 +10,70 @@ const App = (() => {
 
         bindNavigation();
         bindSettings();
+        bindKnowledgeBooks();
         loadSettings();
-
-        // Register SW
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(e => console.log('SW reg failed:', e));
-        }
+        registerSW();
     }
 
     function updateClock() {
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('status-time').textContent = timeStr;document.getElementById('home-clock').textContent = timeStr;
+        const timeEl = document.getElementById('status-time');
+        const clockEl = document.getElementById('home-clock');
+        if (timeEl) timeEl.textContent = timeStr;
+        if (clockEl) clockEl.textContent = timeStr;
     }
 
+    function registerSW() {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.register('/miniphone/sw.js').then(reg => {
+            // Check for updates on every load
+            reg.update();
+
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // New version available — auto reload
+                        UI.toast('New version available, updating...');
+                        setTimeout(() => {
+                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        }, 1000);
+                    }
+                });
+            });
+        }).catch(e => console.log('SW registration failed:', e));
+
+        // Reload when new SW takes control
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+        });
+    }
+
+    // ── Navigation ────────────────────────────────────────────────
+
     function bindNavigation() {
-        // Nav bar
         document.querySelectorAll('.nav-item').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const page = btn.dataset.page;
-                navigateTo(page);
-            });
+            btn.addEventListener('click', () => navigateTo(btn.dataset.page));
         });
 
-        // Home app icons
         document.querySelectorAll('.home-app').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const page = btn.dataset.page;
-                navigateTo(page);
-            });
+            btn.addEventListener('click', () => navigateTo(btn.dataset.page));
         });
 
-        // Back buttons
         document.querySelectorAll('.back-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const target = btn.dataset.back;
-                navigateTo(target, true);
-            });
+            btn.addEventListener('click', () => navigateTo(btn.dataset.back, true));
         });
     }
 
     function navigateTo(pageId, isBack = false) {
         const prevPage = document.querySelector('.page.active');
         const nextPage = document.getElementById('page-' + pageId);
+        if (!nextPage || prevPage === nextPage) return;
 
-        if (!nextPage || (prevPage === nextPage)) return;
-
-        // Trigger page-specific renders
         if (pageId === 'chat-list') Chat.renderContactList();
         if (pageId === 'forum-list') Forum.renderPostList();
 
-        // Animate
         if (prevPage) {
             prevPage.classList.remove('active');
             if (!isBack) {
@@ -72,8 +84,7 @@ const App = (() => {
 
         nextPage.classList.add('active');
 
-        // Update nav bar
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        // Update nav highlight
         const navMap = {
             'home': 'home',
             'chat-list': 'chat-list',
@@ -82,18 +93,16 @@ const App = (() => {
             'forum-post': 'forum-list',
             'settings': 'settings'
         };
-        const navTarget = navMap[pageId] || pageId;
-        document.querySelector(`.nav-item[data-page="${navTarget}"]`)?.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelector(`.nav-item[data-page="${navMap[pageId] || pageId}"]`)?.classList.add('active');
 
         currentPage = pageId;
-
-        if (!isBack) {
-            pageHistory.push(pageId);}
     }
+
+    // ── Settings ──────────────────────────────────────────────────
 
     function bindSettings() {
         document.getElementById('btn-fetch-models').addEventListener('click', async () => {
-            // Save URL and key first
             const url = document.getElementById('setting-api-url').value.trim();
             const key = document.getElementById('setting-api-key').value.trim();
             const settings = Store.getSettings();
@@ -108,7 +117,7 @@ const App = (() => {
                 select.innerHTML = models.map(m =>
                     `<option value="${m}" ${m === settings.model ? 'selected' : ''}>${m}</option>`
                 ).join('');
-                UI.toast(`Found ${models.length} models`);
+                UI.toast(`Found ${models.length} models ✦`);
             } catch (e) {
                 UI.toast('Error: ' + e.message);
             }
@@ -125,7 +134,7 @@ const App = (() => {
                 summaryPrompt: document.getElementById('setting-summary-prompt').value.trim()
             };
             Store.saveSettings(settings);
-            UI.toast('Settings saved✦');
+            UI.toast('Settings saved ✦');
         });
 
         // Import char JSON
@@ -136,18 +145,17 @@ const App = (() => {
         document.getElementById('file-import-char').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (ev) => {
                 try {
                     const data = JSON.parse(ev.target.result);
                     importCharFromJson(data);
-                    UI.toast('Character imported ✦');
-                } catch (err) {
+                } catch {
                     UI.toast('Invalid JSON file');
                 }
             };
-            reader.readAsText(file);e.target.value = '';
+            reader.readAsText(file);
+            e.target.value = '';
         });
 
         // Export all data
@@ -171,14 +179,13 @@ const App = (() => {
         document.getElementById('file-import-data').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (ev) => {
                 try {
                     const data = JSON.parse(ev.target.result);
                     Store.importAll(data);
                     UI.toast('Data imported. Reloading...');
-                    setTimeout(() => location.reload(), 1000);
+                    setTimeout(() => location.reload(), 1200);
                 } catch {
                     UI.toast('Invalid backup file');
                 }
@@ -188,31 +195,38 @@ const App = (() => {
         });
     }
 
+    // ── Import Char JSON (fixed) ───────────────────────────────────
+
     function importCharFromJson(data) {
-        // Support common char card formats (TavernAI, SillyTavern, etc.)
         let char = {};
 
-        if (data.data) {
-            // V2 format
-            char.name = data.data.name || data.name || 'Unknown';
-            char.persona = data.data.description || data.data.personality || '';
-            char.systemPrompt = data.data.system_prompt || data.data.scenario || '';
-            char.firstMessage = data.data.first_mes || '';
-            char.avatar = data.data.avatar || '👤';
+        if (data.spec === 'chara_card_v2' || data.data) {
+            // V2 format (SillyTavern / TavernAI V2)
+            const d = data.data || {};
+            char.name = d.name || data.name || 'Unknown';
+            char.persona = [d.description, d.personality, d.mes_example]
+                .filter(Boolean).join('\n\n');
+            char.systemPrompt = d.system_prompt || d.scenario || '';
+            char.firstMessage = d.first_mes || '';
+            const rawAvatar = data.avatar || d.avatar || '';
+            char.avatar = rawAvatar.startsWith('data:') || rawAvatar.startsWith('http')
+                ? rawAvatar : '👤';
         } else {
             // V1 / simple format
             char.name = data.name || data.char_name || 'Unknown';
             char.persona = data.description || data.personality || data.persona || '';
             char.systemPrompt = data.system_prompt || data.scenario || '';
             char.firstMessage = data.first_mes || data.greeting || '';
-            char.avatar = data.avatar || '👤';
+            const rawAvatar = data.avatar || '';
+            char.avatar = rawAvatar.startsWith('data:') || rawAvatar.startsWith('http')
+                ? rawAvatar : '👤';
         }
 
-        Store.addChar(char);
+        if (!char.name || char.name === 'Unknown') {
+            UI.toast('Warning: could not read character name');
+        }
 
-        // Auto-create a conversation
-        const chars = Store.getChars();
-        const newChar = chars[chars.length - 1];
+        const newChar = Store.addChar(char);
 
         const conv = Store.addConversation({
             name: newChar.name,
@@ -220,17 +234,182 @@ const App = (() => {
             type: 'single'
         });
 
-        // Add first message if exists
         if (char.firstMessage) {
             Store.addMessage(conv.id, {
                 senderId: newChar.id,
                 senderName: newChar.name,
                 senderAvatar: newChar.avatar,
                 content: char.firstMessage,
-                role: 'assistant'
+                role: 'assistant',
+                type: 'text'
             });
         }
+
+        UI.toast(`Imported: ${newChar.name} ✦`);
     }
+
+    // ── Knowledge Books UI ────────────────────────────────────────
+
+    function bindKnowledgeBooks() {
+        document.getElementById('btn-manage-kb').addEventListener('click', showKnowledgeBooksModal);
+    }
+
+    function showKnowledgeBooksModal() {
+        renderKBList();
+    }
+
+   function renderKBList() {
+    const books = Store.getKnowledgeBooks();
+    const chars = Store.getChars().filter(c => c.id !== '__model__');
+
+    const booksHtml = books.length === 0
+        ? '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px;">No knowledge books yet</p>'
+        : books.map(b => `
+            <div class="kb-item" style="padding:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;margin-bottom:8px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <div>
+                            <div style="font-size:13px;font-weight:500;">${UI.escapeHtml(b.name)}</div>
+                            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                                ${b.global ? '🌐 Global' : '👤 ' + (Store.getChar(b.charId)?.name || 'Unknown char')}
+                                · ${(b.entries || []).length} entries
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:6px;">
+                            <button class="small-btn kb-edit" data-id="${b.id}">Edit</button>
+                            <button class="small-btn kb-delete" data-id="${b.id}" style="border-color:var(--accent-red);">Del</button>
+                        </div>
+                    </div>
+                </div>`).join('');
+
+        const charOptions = chars.map(c =>
+            `<option value="${c.id}">${UI.escapeHtml(c.name)}</option>`
+        ).join('');
+
+        UI.showModal(`
+            <h3>📚 Knowledge Books</h3>
+            <div style="max-height:240px;overflow-y:auto;margin-bottom:12px;">
+                ${booksHtml}
+            </div>
+            <div style="border-top:1px solid var(--border-color);padding-top:12px;">
+                <div class="setting-item">
+                    <label>New Book Name</label>
+                    <input type="text" id="kb-new-name" placeholder="e.g. World Lore">
+                </div>
+                <div class="setting-item">
+                    <label>Scope</label>
+                    <select id="kb-new-scope">
+                        <option value="global">🌐 Global (all chats)</option>
+                        ${charOptions ? `<optgroup label="Char-specific">${charOptions}</optgroup>` : ''}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-btns">
+                <button class="gothic-btn" onclick="UI.closeModal()">Close</button>
+                <button class="gothic-btn primary" id="btn-kb-create">Create Book</button>
+            </div>
+        `);
+
+        document.getElementById('btn-kb-create').addEventListener('click', () => {
+            const name = document.getElementById('kb-new-name').value.trim();
+            if (!name) { UI.toast('Enter a book name'); return; }
+            const scope = document.getElementById('kb-new-scope').value;
+            const isGlobal = scope === 'global';
+            Store.addKnowledgeBook({
+                name,
+                global: isGlobal,
+                charId: isGlobal ? null : scope,
+                entries: []
+            });
+            UI.toast(`Book "${name}" created`);
+            renderKBList();
+        });
+
+        // Edit / Delete buttons
+        document.querySelectorAll('.kb-edit').forEach(btn => {
+            btn.addEventListener('click', () => showKBEditModal(btn.dataset.id));
+        });
+
+        document.querySelectorAll('.kb-delete').forEach(btn => {
+            btn.addEventListener('click', () => {
+                Store.deleteKnowledgeBook(btn.dataset.id);
+                UI.toast('Book deleted');
+                renderKBList();
+            });
+        });
+    }
+
+    function showKBEditModal(bookId) {
+        const book = Store.getKnowledgeBook(bookId);
+        if (!book) return;
+
+        const entriesHtml = (book.entries || []).map((entry, idx) => `
+            <div class="kb-entry" data-idx="${idx}" style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;">
+                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                    <input type="text" class="kb-entry-keyword" value="${UI.escapeHtml(entry.keyword || '')}"
+                        placeholder="Keyword (optional)" style="font-size:12px;">
+                    <textarea class="kb-entry-content" rows="2"
+                        style="font-size:12px;">${UI.escapeHtml(entry.content || '')}</textarea>
+                </div>
+                <button class="small-btn kb-entry-del" data-idx="${idx}"
+                    style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">✕</button>
+            </div>`).join('');
+
+        UI.showModal(`
+            <h3>✎ Edit: ${UI.escapeHtml(book.name)}</h3>
+            <div id="kb-entries-list" style="max-height:300px;overflow-y:auto;margin-bottom:10px;">
+                ${entriesHtml || '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px;">No entries yet</p>'}
+            </div>
+            <button class="gothic-btn full-width" id="btn-kb-add-entry" style="margin-bottom:12px;">＋ Add Entry</button>
+            <div class="modal-btns">
+                <button class="gothic-btn" id="btn-kb-back">← Back</button>
+                <button class="gothic-btn primary" id="btn-kb-save">Save</button>
+            </div>
+        `);
+
+        document.getElementById('btn-kb-back').addEventListener('click', () => renderKBList());
+
+        document.getElementById('btn-kb-add-entry').addEventListener('click', () => {
+            const list = document.getElementById('kb-entries-list');
+            const idx = list.querySelectorAll('.kb-entry').length;
+            const div = document.createElement('div');
+            div.className = 'kb-entry';
+            div.dataset.idx = idx;
+            div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;';
+            div.innerHTML = `
+                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                    <input type="text" class="kb-entry-keyword" placeholder="Keyword (optional)" style="font-size:12px;">
+                    <textarea class="kb-entry-content" rows="2" style="font-size:12px;"></textarea>
+                </div>
+                <button class="small-btn kb-entry-del" data-idx="${idx}"
+                    style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">✕</button>`;
+            list.appendChild(div);
+            bindEntryDeleteBtns();
+        });
+
+        bindEntryDeleteBtns();
+
+        document.getElementById('btn-kb-save').addEventListener('click', () => {
+            const entries = [];
+            document.querySelectorAll('.kb-entry').forEach(row => {
+                const keyword = row.querySelector('.kb-entry-keyword')?.value.trim() || '';
+                const content = row.querySelector('.kb-entry-content')?.value.trim() || '';
+                if (content) entries.push({ keyword, content });
+            });
+            Store.updateKnowledgeBook(bookId, { entries });
+            UI.toast('Knowledge book saved ✦');
+            renderKBList();
+        });
+    }
+
+    function bindEntryDeleteBtns() {
+        document.querySelectorAll('.kb-entry-del').forEach(btn => {
+            btn.onclick = () => {
+                btn.closest('.kb-entry')?.remove();
+            };
+        });
+    }
+
+    // ── Load Settings into UI ─────────────────────────────────────
 
     function loadSettings() {
         const settings = Store.getSettings();
@@ -250,5 +429,5 @@ const App = (() => {
     return { init, navigateTo };
 })();
 
-// Boot
 document.addEventListener('DOMContentLoaded', () => App.init());
+

@@ -14,7 +14,7 @@ const Store = (() => {
         try {
             localStorage.setItem(PREFIX + key, JSON.stringify(value));
         } catch (e) {
-            console.warn('Storage full or error:', e);
+            console.warn('Storage error:', e);
         }
     }
 
@@ -22,7 +22,8 @@ const Store = (() => {
         localStorage.removeItem(PREFIX + key);
     }
 
-    // --- Settings ---
+    // ── Settings ──────────────────────────────────────────────────
+
     function getSettings() {
         return get('settings', {
             apiUrl: '',
@@ -31,7 +32,7 @@ const Store = (() => {
             username: 'User',
             userAvatar: '😈',
             persona: '',
-            summaryPrompt: `You are a conversation summarizer. Summarize the following conversation concisely, preserving key facts, character traits, emotional states, and important plot points. Write in third person. Keep it under 300 words.\n\nConversation:\n{{conversation}}\n\nSummary:`
+            summaryPrompt: `Summarize the following conversation concisely, preserving key facts, character traits, emotional states, and important plot points. Write in third person. Keep it under 300 words.\n\nConversation:\n{{conversation}}\n\nSummary:`
         });
     }
 
@@ -39,7 +40,8 @@ const Store = (() => {
         set('settings', s);
     }
 
-    // --- Characters ---
+    // ── Characters ────────────────────────────────────────────────
+
     function getChars() {
         return get('chars', []);
     }
@@ -72,16 +74,15 @@ const Store = (() => {
 
     function deleteChar(id) {
         saveChars(getChars().filter(c => c.id !== id));
-        // Also delete associated chats
-        const convos = getConversations();
-        convos.forEach(conv => {
+        getConversations().forEach(conv => {
             if (conv.charIds && conv.charIds.includes(id) && conv.charIds.length === 1) {
                 deleteConversation(conv.id);
             }
         });
     }
 
-    // --- Conversations ---
+    // ── Conversations ─────────────────────────────────────────────
+
     function getConversations() {
         return get('conversations', []);
     }
@@ -119,7 +120,8 @@ const Store = (() => {
         remove('summary_' + id);
     }
 
-    // --- Messages ---
+    // ── Messages ──────────────────────────────────────────────────
+
     function getMessages(convId) {
         return get('messages_' + convId, []);
     }
@@ -134,17 +136,15 @@ const Store = (() => {
         msg.timestamp = msg.timestamp || Date.now();
         msgs.push(msg);
         saveMessages(convId, msgs);
-
-        // Update conversation preview
         updateConversation(convId, {
             lastMessage: msg.content.slice(0, 50),
             lastMessageTime: msg.timestamp
         });
-
         return msg;
     }
 
-    // --- Summaries ---
+    // ── Summaries ─────────────────────────────────────────────────
+
     function getSummary(convId) {
         return get('summary_' + convId, '');
     }
@@ -153,7 +153,8 @@ const Store = (() => {
         set('summary_' + convId, summary);
     }
 
-    // --- Forum ---
+    // ── Forum ─────────────────────────────────────────────────────
+
     function getPosts() {
         return get('forum_posts', []);
     }
@@ -191,12 +192,50 @@ const Store = (() => {
         savePosts(getPosts().filter(p => p.id !== id));
     }
 
-    // --- Export / Import ---
+    // ── Knowledge Books ───────────────────────────────────────────
+
+    function getKnowledgeBooks() {
+        return get('knowledge_books', []);
+    }
+
+    function saveKnowledgeBooks(books) {
+        set('knowledge_books', books);
+    }
+
+    function addKnowledgeBook(book) {
+        const books = getKnowledgeBooks();
+        book.id = book.id || 'kb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        book.createdAt = Date.now();
+        book.entries = book.entries || [];
+        books.push(book);
+        saveKnowledgeBooks(books);
+        return book;
+    }
+
+    function getKnowledgeBook(id) {
+        return getKnowledgeBooks().find(b => b.id === id) || null;
+    }
+
+    function updateKnowledgeBook(id, updates) {
+        const books = getKnowledgeBooks();
+        const idx = books.findIndex(b => b.id === id);
+        if (idx >= 0) {
+            books[idx] = { ...books[idx], ...updates };
+            saveKnowledgeBooks(books);
+        }
+    }
+
+    function deleteKnowledgeBook(id) {
+        saveKnowledgeBooks(getKnowledgeBooks().filter(b => b.id !== id));
+    }
+
+    // ── Export / Import ───────────────────────────────────────────
+
     function exportAll() {
         const data = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key.startsWith(PREFIX)) {
+            if (key && key.startsWith(PREFIX)) {
                 data[key] = localStorage.getItem(key);
             }
         }
@@ -220,6 +259,9 @@ const Store = (() => {
         getMessages, saveMessages, addMessage,
         getSummary, saveSummary,
         getPosts, savePosts, addPost, getPost, updatePost, deletePost,
+        getKnowledgeBooks, saveKnowledgeBooks, addKnowledgeBook,
+        getKnowledgeBook, updateKnowledgeBook, deleteKnowledgeBook,
         exportAll, importAll
     };
 })();
+

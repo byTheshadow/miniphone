@@ -5,15 +5,14 @@ const Chat = (() => {
         // Ensure "Model" char exists
         const chars = Store.getChars();
         if (!chars.find(c => c.id === '__model__')) {
-            const modelChar = {
+            chars.push({
                 id: '__model__',
                 name: 'AI Assistant',
                 avatar: '🤖',
                 persona: '',
                 systemPrompt: 'You are a helpful AI assistant.',
                 createdAt: Date.now()
-            };
-            chars.push(modelChar);
+            });
             Store.saveChars(chars);
         }
 
@@ -34,6 +33,7 @@ const Chat = (() => {
         document.getElementById('btn-new-chat').addEventListener('click', showNewChatModal);
         document.getElementById('btn-send').addEventListener('click', sendMessage);
         document.getElementById('btn-chat-menu').addEventListener('click', showChatMenu);
+        document.getElementById('btn-extra').addEventListener('click', showExtraPanel);
 
         const input = document.getElementById('chat-input');
         input.addEventListener('keydown', (e) => {
@@ -42,18 +42,27 @@ const Chat = (() => {
                 sendMessage();
             }
         });
-
-        // Auto-resize textarea
         input.addEventListener('input', () => {
             input.style.height = 'auto';
             input.style.height = Math.min(input.scrollHeight, 120) + 'px';
         });
+
+        const commentInput = document.getElementById('comment-input');
+        if (commentInput) {
+            commentInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    // forum handles this
+                }
+            });
+        }
     }
+
+    // ── Contact List ──────────────────────────────────────────────
 
     function renderContactList() {
         const container = document.getElementById('chat-contacts');
         const convos = Store.getConversations();
-        const settings = Store.getSettings();
 
         if (convos.length === 0) {
             container.innerHTML = `
@@ -67,12 +76,14 @@ const Chat = (() => {
         container.innerHTML = convos.map(conv => {
             let avatar = '💬';
             let name = conv.name || 'Chat';
+            let charId = null;
 
             if (conv.charIds && conv.charIds.length === 1) {
                 const char = Store.getChar(conv.charIds[0]);
                 if (char) {
                     avatar = char.avatar || '👤';
                     name = char.name || name;
+                    charId = char.id;
                 }
             } else if (conv.type === 'group') {
                 avatar = '👥';
@@ -83,17 +94,77 @@ const Chat = (() => {
                     ${UI.renderAvatar(avatar)}
                     <div class="contact-info">
                         <div class="contact-name">${UI.escapeHtml(name)}</div>
-                        <div class="contact-preview">${UI.escapeHtml(conv.lastMessage ||'Start a conversation...')}</div>
+                        <div class="contact-preview">${UI.escapeHtml(conv.lastMessage || 'Start a conversation...')}</div>
                     </div>
                     <div class="contact-meta">
-                        <span class="contact-time">${UI.formatTime(conv.lastMessageTime || conv.createdAt)}</span></div>
+                        <span class="contact-time">${UI.formatTime(conv.lastMessageTime || conv.createdAt)}</span>
+                        ${charId ? `<button class="edit-char-btn" data-char-id="${charId}" title="Edit character">✎</button>` : ''}
+                    </div>
                 </div>`;
         }).join('');
 
         container.querySelectorAll('.contact-item').forEach(el => {
             el.addEventListener('click', () => openChat(el.dataset.convId));
         });
+
+        container.querySelectorAll('.edit-char-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showEditCharModal(btn.dataset.charId);
+            });
+        });
     }
+
+    // ── Edit Char Modal ───────────────────────────────────────────
+
+    function showEditCharModal(charId) {
+        const char = Store.getChar(charId);
+        if (!char) return;
+
+        UI.showModal(`
+            <h3>✎ Edit Character</h3>
+            <div class="setting-item">
+                <label>Name</label>
+                <input type="text" id="edit-char-name" value="${UI.escapeHtml(char.name || '')}">
+            </div>
+            <div class="setting-item">
+                <label>Avatar (emoji or URL)</label>
+                <input type="text" id="edit-char-avatar" value="${UI.escapeHtml(char.avatar || '')}">
+            </div>
+            <div class="setting-item">
+                <label>Char Persona / Description</label>
+                <textarea id="edit-char-persona" rows="3">${UI.escapeHtml(char.persona || '')}</textarea>
+            </div>
+            <div class="setting-item">
+                <label>System Prompt</label>
+                <textarea id="edit-char-system" rows="2">${UI.escapeHtml(char.systemPrompt || '')}</textarea>
+            </div>
+            <div class="setting-item">
+                <label>Your Persona with this Char</label>
+                <textarea id="edit-char-user-persona" rows="2"
+                    placeholder="Overrides global persona for this char only">${UI.escapeHtml(char.userPersona || '')}</textarea>
+            </div>
+            <div class="modal-btns">
+                <button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>
+                <button class="gothic-btn primary" id="btn-save-char">Save</button>
+            </div>
+        `);
+
+        document.getElementById('btn-save-char').addEventListener('click', () => {
+            Store.updateChar(charId, {
+                name: document.getElementById('edit-char-name').value.trim(),
+                avatar: document.getElementById('edit-char-avatar').value.trim() || '👤',
+                persona: document.getElementById('edit-char-persona').value.trim(),
+                systemPrompt: document.getElementById('edit-char-system').value.trim(),
+                userPersona: document.getElementById('edit-char-user-persona').value.trim()
+            });
+            UI.closeModal();
+            renderContactList();
+            UI.toast('Character updated ✦');
+        });
+    }
+
+    // ── Open Chat ─────────────────────────────────────────────────
 
     function openChat(convId) {
         currentConvId = convId;
@@ -113,7 +184,6 @@ const Chat = (() => {
             avatar = '👥';
         }
 
-        // Set header
         document.getElementById('chat-title').textContent = name;
         const avatarEl = document.getElementById('chat-avatar');
         const isUrl = avatar.startsWith('http') || avatar.startsWith('data:');
@@ -123,15 +193,34 @@ const Chat = (() => {
             avatarEl.textContent = avatar;
         }
 
+        // Apply background image
+        const msgContainer = document.getElementById('chat-messages');
+        if (conv.bgImage) {
+            msgContainer.style.backgroundImage = `url(${conv.bgImage})`;
+            msgContainer.style.backgroundSize = 'cover';
+            msgContainer.style.backgroundPosition = 'center';
+        } else {
+            msgContainer.style.backgroundImage = '';
+        }
+
+        // Apply custom bubble CSS
+        document.getElementById('custom-bubble-style')?.remove();
+        if (conv.bubbleCss) {
+            const style = document.createElement('style');
+            style.id = 'custom-bubble-style';
+            style.textContent = conv.bubbleCss;
+            document.head.appendChild(style);
+        }
+
         renderMessages();
         App.navigateTo('chat');
 
-        // Scroll to bottom
         setTimeout(() => {
-            const msgContainer = document.getElementById('chat-messages');
             msgContainer.scrollTop = msgContainer.scrollHeight;
         }, 100);
     }
+
+    // ── Render Messages ───────────────────────────────────────────
 
     function renderMessages() {
         if (!currentConvId) return;
@@ -151,14 +240,14 @@ const Chat = (() => {
 
             const isSelf = msg.senderId === '__user__';
             const avatar = isSelf ? (settings.userAvatar || '😈') : (msg.senderAvatar || '🤖');
-            const name = isSelf ? settings.username : (msg.senderName || 'Assistant');
+            const name = isSelf ? (settings.username || 'User') : (msg.senderName || 'Assistant');
 
             return `
                 <div class="msg-row ${isSelf ? 'self' : 'other'}">
                     <div class="msg-avatar">${renderMsgAvatar(avatar)}</div>
                     <div class="msg-content">
                         ${!isSelf ? `<div class="msg-sender">${UI.escapeHtml(name)}</div>` : ''}
-                        <div class="msg-bubble">${formatMsgContent(msg.content)}</div>
+                        <div class="msg-bubble">${renderBubbleContent(msg)}</div>
                         <div class="msg-time">${UI.formatFullTime(msg.timestamp)}</div>
                     </div>
                 </div>`;
@@ -171,22 +260,62 @@ const Chat = (() => {
         if (!value) return '👤';
         const isUrl = value.startsWith('http') || value.startsWith('data:');
         if (isUrl) {
-            return `<img src="${UI.escapeHtml(value)}" alt="" onerror="this.parentElement.textContent='👤'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+            return `<img src="${UI.escapeHtml(value)}" alt=""
+                onerror="this.parentElement.textContent='👤'"
+                style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
         }
         return UI.escapeHtml(value);
     }
 
+    // Render bubble content based on message type
+    function renderBubbleContent(msg) {
+        switch (msg.type) {
+            case 'sticker':
+                return `<div class="msg-sticker">${UI.escapeHtml(msg.content)}</div>`;
+            case 'transfer':
+                return `<div class="msg-special transfer">
+                    <span class="special-icon">💸</span>
+                    <div><div class="special-title">Transfer</div>
+                    <div class="special-desc">${UI.escapeHtml(msg.content)}</div></div>
+                </div>`;
+            case 'redpacket':
+                return `<div class="msg-special redpacket">
+                    <span class="special-icon">🧧</span>
+                    <div><div class="special-title">Red Packet</div>
+                    <div class="special-desc">${UI.escapeHtml(msg.content)}</div></div>
+                </div>`;
+            case 'location':
+                return `<div class="msg-special location">
+                    <span class="special-icon">📍</span>
+                    <div><div class="special-title">Location</div>
+                    <div class="special-desc">${UI.escapeHtml(msg.content)}</div></div>
+                </div>`;
+            case 'payment':
+                return `<div class="msg-special payment">
+                    <span class="special-icon">💳</span>
+                    <div><div class="special-title">Payment Request</div>
+                    <div class="special-desc">${UI.escapeHtml(msg.content)}</div></div>
+                </div>`;
+            case 'image_desc':
+                return `<div class="msg-special image-desc">
+                    <span class="special-icon">🖼️</span>
+                    <div><div class="special-title">Image</div>
+                    <div class="special-desc">${UI.escapeHtml(msg.content)}</div></div>
+                </div>`;
+            default:
+                return formatMsgContent(msg.content);
+        }
+    }
+
     function formatMsgContent(content) {
-        // Basic markdown-like formatting
         let html = UI.escapeHtml(content);
-        // Bold
-        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Italic
-        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        // Line breaks
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>\$1</strong>');
+        html = html.replace(/\*(.*?)\*/g, '<em>\$1</em>');
         html = html.replace(/\n/g, '<br>');
         return html;
     }
+
+    // ── Send Message ──────────────────────────────────────────────
 
     async function sendMessage() {
         if (!currentConvId) return;
@@ -201,18 +330,18 @@ const Chat = (() => {
         const settings = Store.getSettings();
         const conv = Store.getConversation(currentConvId);
 
-        // Add user message
         Store.addMessage(currentConvId, {
             senderId: '__user__',
             senderName: settings.username || 'User',
             senderAvatar: settings.userAvatar || '😈',
-            content: content,
-            role: 'user'
+            content,
+            role: 'user',
+            type: 'text'
         });
 
         renderMessages();
 
-        // Show typing indicator
+        // Typing indicator
         const msgContainer = document.getElementById('chat-messages');
         const typingEl = document.createElement('div');
         typingEl.className = 'msg-row other';
@@ -238,10 +367,8 @@ const Chat = (() => {
             const apiMessages = AI.buildMessages(currentConvId, conv.charIds || ['__model__']);
             const reply = await AI.chat(apiMessages);
 
-            // Remove typing indicator
             typingEl.remove();
 
-            // Determine sender
             let senderName = 'Assistant';
             let senderAvatar = '🤖';
             let senderId = '__model__';
@@ -254,11 +381,12 @@ const Chat = (() => {
                     senderId = char.id;
                 }
             } else if (conv.type === 'group') {
-                // Try to parse character name from response
                 const match = reply.match(/^([^:]+):\s*/);
                 if (match) {
                     const charName = match[1].trim();
-                    const char = (conv.charIds || []).map(id => Store.getChar(id)).find(c => c && c.name === charName);
+                    const char = (conv.charIds || [])
+                        .map(id => Store.getChar(id))
+                        .find(c => c && c.name === charName);
                     if (char) {
                         senderName = char.name;
                         senderAvatar = char.avatar || '🤖';
@@ -272,10 +400,11 @@ const Chat = (() => {
                 senderName,
                 senderAvatar,
                 content: reply,
-                role: 'assistant'
+                role: 'assistant',
+                type: 'text'
             });
 
-            renderMessages();// Check if summary needed
+            renderMessages();
             AI.checkAndSummarize(currentConvId);
 
         } catch (err) {
@@ -285,10 +414,130 @@ const Chat = (() => {
         }
     }
 
+    // Send a special message (non-text types)
+    function sendSpecialMessage(type, content) {
+        if (!currentConvId) return;
+        const settings = Store.getSettings();
+
+        Store.addMessage(currentConvId, {
+            senderId: '__user__',
+            senderName: settings.username || 'User',
+            senderAvatar: settings.userAvatar || '😈',
+            content,
+            role: 'user',
+            type
+        });
+
+        renderMessages();
+    }
+
+    // ── Extra Panel (special messages) ────────────────────────────
+
+    function showExtraPanel() {
+        UI.showModal(`
+            <h3>⛧ Send</h3>
+            <div class="extra-grid">
+                <button class="extra-item" data-type="sticker">
+                    <span>😄</span><label>Sticker</label>
+                </button>
+                <button class="extra-item" data-type="redpacket">
+                    <span>🧧</span><label>Red Packet</label>
+                </button>
+                <button class="extra-item" data-type="transfer">
+                    <span>💸</span><label>Transfer</label>
+                </button>
+                <button class="extra-item" data-type="location">
+                    <span>📍</span><label>Location</label>
+                </button>
+                <button class="extra-item" data-type="payment">
+                    <span>💳</span><label>Payment</label>
+                </button>
+                <button class="extra-item" data-type="image_desc">
+                    <span>🖼️</span><label>Image</label>
+                </button>
+            </div>
+            <style>
+                .extra-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 12px;
+                    margin-top: 8px;
+                }
+                .extra-item {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 16px 8px;
+                    border-radius: 12px;
+                    background: var(--bg-glass);
+                    border: 1px solid var(--border-color);
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .extra-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+                .extra-item span { font-size: 28px; }
+                .extra-item label { font-size: 11px; color: var(--text-secondary); cursor: pointer; }
+            </style>
+        `);
+
+        document.querySelectorAll('.extra-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                UI.closeModal();
+                showSpecialInputModal(type);
+            });
+        });
+    }
+
+    function showSpecialInputModal(type) {
+        const labels = {
+            sticker: { title: 'Send Sticker', placeholder: 'Enter emoji or sticker URL', label: 'Sticker' },
+            redpacket: { title: 'Send Red Packet 🧧', placeholder: 'e.g. ¥88.88 — Happy New Year!', label: 'Amount & Message' },
+            transfer: { title: 'Send Transfer 💸', placeholder: 'e.g. ¥200.00', label: 'Amount' },
+            location: { title: 'Share Location 📍', placeholder: 'e.g. Tokyo Tower, Japan', label: 'Location' },
+            payment: { title: 'Payment Request 💳', placeholder: 'e.g. ¥50.00 for dinner', label: 'Details' },
+            image_desc: { title: 'Send Image 🖼️', placeholder: 'Describe the image...', label: 'Description' }
+        };
+
+        const info = labels[type] || { title: 'Send', placeholder: 'Content', label: 'Content' };
+
+        UI.showModal(`
+            <h3>${info.title}</h3>
+            <div class="setting-item">
+                <label>${info.label}</label>
+                <input type="text" id="special-msg-input" placeholder="${info.placeholder}">
+            </div>
+            <div class="modal-btns">
+                <button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>
+                <button class="gothic-btn primary" id="btn-send-special">Send</button>
+            </div>
+        `);
+
+        const input = document.getElementById('special-msg-input');
+        input.focus();
+
+        document.getElementById('btn-send-special').addEventListener('click', () => {
+            const content = input.value.trim();
+            if (!content) { UI.toast('Please enter content'); return; }
+            UI.closeModal();
+            sendSpecialMessage(type, content);
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btn-send-special')?.click();
+            }
+        });
+    }
+
+    // ── New Chat Modal ────────────────────────────────────────────
+
     function showNewChatModal() {
         const chars = Store.getChars();
 
-        let charOptions = chars.map(c =>
+        const charOptions = chars.map(c =>
             `<label class="char-check-item">
                 <input type="checkbox" value="${c.id}">
                 ${UI.renderAvatar(c.avatar, 24)}
@@ -300,8 +549,8 @@ const Chat = (() => {
             <h3>⛧ New Conversation</h3>
             <div class="setting-item">
                 <label>Select characters:</label>
-                <div class="char-check-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-top:8px;">
-                    ${charOptions || '<p style="color:var(--text-muted);font-size:12px;">No characters yet. Create one or import a JSON.</p>'}
+                <div class="char-check-list" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+                    ${charOptions || '<p style="color:var(--text-muted);font-size:12px;">No characters yet. Create one below.</p>'}
                 </div>
             </div>
             <div class="setting-item" style="margin-top:12px;border-top:1px solid var(--border-color);padding-top:12px;">
@@ -310,11 +559,13 @@ const Chat = (() => {
                 <input type="text" id="new-char-avatar" placeholder="Avatar emoji or URL" style="margin-top:6px;">
                 <textarea id="new-char-persona" placeholder="Character persona / description" rows="3" style="margin-top:6px;"></textarea>
                 <textarea id="new-char-system" placeholder="System prompt (optional)" rows="2" style="margin-top:6px;"></textarea>
+                <textarea id="new-char-user-persona" placeholder="Your persona with this char (overrides global)" rows="2" style="margin-top:6px;"></textarea>
             </div>
             <div class="modal-btns">
                 <button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>
                 <button class="gothic-btn primary" id="btn-create-conv">Create</button>
-            </div><style>
+            </div>
+            <style>
                 .char-check-item {
                     display: flex; align-items: center; gap: 8px; padding: 8px;
                     border-radius: 8px; cursor: pointer; transition: background 0.2s;
@@ -329,14 +580,14 @@ const Chat = (() => {
             const checked = document.querySelectorAll('.char-check-list input:checked');
             const selectedIds = Array.from(checked).map(cb => cb.value);
 
-            // Check if creating new char
             const newName = document.getElementById('new-char-name').value.trim();
             if (newName) {
                 const newChar = Store.addChar({
                     name: newName,
                     avatar: document.getElementById('new-char-avatar').value.trim() || '👤',
                     persona: document.getElementById('new-char-persona').value.trim(),
-                    systemPrompt: document.getElementById('new-char-system').value.trim()
+                    systemPrompt: document.getElementById('new-char-system').value.trim(),
+                    userPersona: document.getElementById('new-char-user-persona').value.trim()
                 });
                 selectedIds.push(newChar.id);
             }
@@ -347,18 +598,9 @@ const Chat = (() => {
             }
 
             const isGroup = selectedIds.length > 1;
-            let convName = '';
-
-            if (isGroup) {
-                const names = selectedIds.map(id => {
-                    const c = Store.getChar(id);
-                    return c ? c.name : 'Unknown';
-                });
-                convName = names.join(', ');
-            } else {
-                const c = Store.getChar(selectedIds[0]);
-                convName = c ? c.name : 'Chat';
-            }
+            const convName = isGroup
+                ? selectedIds.map(id => { const c = Store.getChar(id); return c ? c.name : 'Unknown'; }).join(', ')
+                : (() => { const c = Store.getChar(selectedIds[0]); return c ? c.name : 'Chat'; })();
 
             const conv = Store.addConversation({
                 name: convName,
@@ -372,6 +614,8 @@ const Chat = (() => {
         });
     }
 
+    // ── Chat Menu ─────────────────────────────────────────────────
+
     function showChatMenu() {
         if (!currentConvId) return;
         const conv = Store.getConversation(currentConvId);
@@ -379,11 +623,103 @@ const Chat = (() => {
         UI.showModal(`
             <h3>⛧ Chat Options</h3>
             <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="gothic-btn full-width" id="btn-chat-bg">🖼️ Set Background Image</button>
+                <button class="gothic-btn full-width" id="btn-chat-bubble">🎨 Custom Bubble CSS</button>
+                <button class="gothic-btn full-width" id="btn-view-summary">📜 View Summary</button>
                 <button class="gothic-btn full-width" id="btn-clear-chat">🗑️ Clear Messages</button>
                 <button class="gothic-btn full-width" id="btn-delete-chat">☠️ Delete Conversation</button>
-                <button class="gothic-btn full-width" id="btn-view-summary">📜 View Summary</button>
                 <button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>
-            </div>`);
+            </div>
+        `);
+
+        document.getElementById('btn-chat-bg').addEventListener('click', () => {
+            UI.closeModal();
+            UI.showModal(`
+                <h3>🖼️ Background Image</h3>
+                <div class="setting-item">
+                    <label>Image URL</label>
+                    <input type="text" id="bg-url-input"
+                        placeholder="https://..."
+                        value="${UI.escapeHtml(conv.bgImage || '')}">
+                </div>
+                <div class="modal-btns">
+                    <button class="gothic-btn" id="btn-clear-bg">Clear</button>
+                    <button class="gothic-btn primary" id="btn-save-bg">Apply</button>
+                </div>
+            `);
+            document.getElementById('btn-save-bg').addEventListener('click', () => {
+                const url = document.getElementById('bg-url-input').value.trim();
+                Store.updateConversation(currentConvId, { bgImage: url });
+                const msgContainer = document.getElementById('chat-messages');
+                if (url) {
+                    msgContainer.style.backgroundImage = `url(${url})`;
+                    msgContainer.style.backgroundSize = 'cover';
+                    msgContainer.style.backgroundPosition = 'center';
+                } else {
+                    msgContainer.style.backgroundImage = '';
+                }
+                UI.closeModal();
+                UI.toast('Background updated');
+            });
+            document.getElementById('btn-clear-bg').addEventListener('click', () => {
+                Store.updateConversation(currentConvId, { bgImage: '' });
+                document.getElementById('chat-messages').style.backgroundImage = '';
+                UI.closeModal();
+                UI.toast('Background cleared');
+            });
+        });
+
+        document.getElementById('btn-chat-bubble').addEventListener('click', () => {
+            UI.closeModal();
+            UI.showModal(`
+                <h3>🎨 Custom Bubble CSS</h3>
+                <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+                    Target <code>.msg-row.self .msg-bubble</code> and <code>.msg-row.other .msg-bubble</code>
+                </p>
+                <div class="setting-item">
+                    <textarea id="bubble-css-input" rows="6"
+                        placeholder=".msg-row.self .msg-bubble { background: rgba(255,0,100,0.3); }"
+                        style="font-family:monospace;font-size:12px;">${UI.escapeHtml(conv.bubbleCss || '')}</textarea>
+                </div>
+                <div class="modal-btns">
+                    <button class="gothic-btn" id="btn-clear-bubble">Clear</button>
+                    <button class="gothic-btn primary" id="btn-save-bubble">Apply</button>
+                </div>
+            `);
+            document.getElementById('btn-save-bubble').addEventListener('click', () => {
+                const css = document.getElementById('bubble-css-input').value;
+                Store.updateConversation(currentConvId, { bubbleCss: css });
+                document.getElementById('custom-bubble-style')?.remove();
+                if (css) {
+                    const style = document.createElement('style');
+                    style.id = 'custom-bubble-style';
+                    style.textContent = css;
+                    document.head.appendChild(style);
+                }
+                UI.closeModal();
+                UI.toast('Bubble style applied');
+            });
+            document.getElementById('btn-clear-bubble').addEventListener('click', () => {
+                                Store.updateConversation(currentConvId, { bubbleCss: '' });
+                document.getElementById('custom-bubble-style')?.remove();
+                UI.closeModal();
+                UI.toast('Bubble style cleared');
+            });
+        });
+
+        document.getElementById('btn-view-summary').addEventListener('click', () => {
+            const summary = Store.getSummary(currentConvId);
+            UI.closeModal();
+            UI.showModal(`
+                <h3>📜 Conversation Summary</h3>
+                <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;max-height:300px;overflow-y:auto;">
+                    ${summary ? UI.escapeHtml(summary) : 'No summary yet. Summary is generated every 30 messages.'}
+                </div>
+                <div class="modal-btns">
+                    <button class="gothic-btn full-width" onclick="UI.closeModal()">Close</button>
+                </div>
+            `);
+        });
 
         document.getElementById('btn-clear-chat').addEventListener('click', () => {
             Store.saveMessages(currentConvId, []);
@@ -401,18 +737,13 @@ const Chat = (() => {
             App.navigateTo('chat-list');
             UI.toast('Conversation deleted');
         });
-
-        document.getElementById('btn-view-summary').addEventListener('click', () => {
-            const summary = Store.getSummary(currentConvId);
-            UI.closeModal();
-            UI.showModal(`
-                <h3>📜 Conversation Summary</h3>
-                <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;">${summary ? UI.escapeHtml(summary) : 'No summary yet. Summary is generated every 30 messages.'}</div><div class="modal-btns">
-                    <button class="gothic-btn" onclick="UI.closeModal()">Close</button>
-                </div>
-            `);
-        });
     }
 
-    return { init, renderContactList, openChat, currentConvId: () => currentConvId };
+    return {
+        init,
+        renderContactList,
+        openChat,
+        getCurrentConvId: () => currentConvId
+    };
 })();
+

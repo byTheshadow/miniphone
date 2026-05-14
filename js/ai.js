@@ -5,9 +5,7 @@ const AI = (() => {
 
         const url = settings.apiUrl.replace(/\/+$/, '') + '/v1/models';
         const headers = {};
-        if (settings.apiKey) {
-            headers['Authorization'] = 'Bearer ' + settings.apiKey;
-        }
+        if (settings.apiKey) headers['Authorization'] = 'Bearer ' + settings.apiKey;
 
         const res = await fetch(url, { headers });
         if (!res.ok) throw new Error('Failed to fetch models: ' + res.status);
@@ -25,16 +23,14 @@ const AI = (() => {
         const headers = {
             'Content-Type': 'application/json'
         };
-        if (settings.apiKey) {
-            headers['Authorization'] = 'Bearer ' + settings.apiKey;
-        }
+        if (settings.apiKey) headers['Authorization'] = 'Bearer ' + settings.apiKey;
 
         const body = {
             model: settings.model,
-            messages: messages,
+            messages,
             temperature: options.temperature ?? 0.8,
             max_tokens: options.max_tokens ?? 2048,
-            ...options.extra
+            ...(options.extra || {})
         };
 
         const res = await fetch(url, {
@@ -52,94 +48,140 @@ const AI = (() => {
         return data.choices?.[0]?.message?.content || '';
     }
 
-    // Build messages array for a conversation
     function buildMessages(convId, charIds) {
         const settings = Store.getSettings();
         const messages = [];
         const chars = charIds.map(id => Store.getChar(id)).filter(Boolean);
 
-        // System prompt
+        // ── System Prompt ──
         let systemPrompt = '';
 
-        if (chars.length === 1&& chars[0].id === '__model__') {
+        if (chars.length === 1 && chars[0].id === '__model__') {
             systemPrompt = 'You are a helpful AI assistant.';
         } else if (chars.length === 1) {
             const c = chars[0];
-            systemPrompt = c.systemPrompt || `You are ${c.name}. ${c.persona || ''}`;
+            systemPrompt = c.systemPrompt
+                ? c.systemPrompt
+                : `You are ${c.name}.`;
+            if (c.persona) systemPrompt += `\n\n${c.persona}`;
         } else {
-            // Group chat
-            systemPrompt = 'This is a group chat. The following characters are present:\n\n';
+            systemPrompt = 'This is a group chat. Characters present:\n\n';
             chars.forEach(c => {
                 if (c.id !== '__model__') {
                     systemPrompt += `- ${c.name}: ${c.persona || 'No description'}\n`;
                 }
             });
-            systemPrompt += '\nRespond as the character who is most likely to reply next. Start your message with the character name followed by a colon.';
+            systemPrompt += '\nRespond as the character most likely to reply next. '
+                + 'Start your message with the character name followed by a colon, e.g. "Alice: ..."';
         }
 
-        if (settings.persona) {
-            systemPrompt += `\n\nThe user's persona: ${settings.persona}`;
+        // ── User Persona (char-specific overrides global) ──
+        const charUserPersona = chars.length === 1 ? (chars[0].userPersona || '') : '';
+        const effectivePersona = charUserPersona || settings.persona || '';
+        if (effectivePersona) {
+            systemPrompt += `\n\nThe user's persona: ${effectivePersona}`;
         }
 
-        // Add summary if exists
+        // ── Conversation Summary ──
         const summary = Store.getSummary(convId);
         if (summary) {
-            systemPrompt += `\n\n[Previous conversation summary]: ${summary}`;
+            systemPrompt += `\n\n[Previous conversation summary]:\n${summary}`;
+        }
+
+        // ── Knowledge Books ──
+        const allBooks = Store.getKnowledgeBooks();
+        const relevantBooks = allBooks.filter(b =>
+            b.global || (charIds.length === 1 && b.charId === charIds[0])
+        );
+
+        if (relevantBooks.length > 0) {
+            // Get last user message for keyword matching
+            const allMsgs = Store.getMessages(convId);
+            const lastUserMsg = [...allMsgs].reverse().find(m => m.senderId === '__user__');
+            const lastContent = (lastUserMsg?.content || '').toLowerCase();
+
+            let injected = '';
+            relevantBooks.forEach(book => {
+                (book.entries || []).forEach(entry => {
+                    // Inject if no keyword, or keyword found in last message
+                    if (!entry.keyword || lastContent.includes(entry.keyword.toLowerCase())) {
+                        injected += `\n- ${entry.content}`;
+                    }
+                });
+            });
+
+            if (injected) {
+                systemPrompt += `\n\n[World Knowledge]:${injected}`;
+            }
         }
 
         messages.push({ role: 'system', content: systemPrompt });
 
-        // Add recent messages (after last summary point, max 40)
+        // ── Message History (last 40) ──
         const allMsgs = Store.getMessages(convId);
         const recentMsgs = allMsgs.slice(-40);
 
         recentMsgs.forEach(msg => {
-            if (msg.role === 'system') {
-                // skip system messages in history} else if (msg.senderId === '__user__') {
-                messages.push({ role: 'user', content: msg.content });
+            if (msg.role === 'system') return;
+            if (msg.senderId === '__user__') {
+                // Include special message types as descriptive text
+                let content = msg.content;
+                if (msg.type && msg.type !== 'text') {
+                    const typeLabels = {
+                        sticker: '[Sticker]',
+                        redpacket: '[Red Packet]',
+                        transfer: '[Transfer]',
+                        location: '[Location]',
+                        payment: '[Payment Request]',
+                        image_desc: '[Image]'
+                    };
+                    content = `${typeLabels[msg.type] || ''} ${msg.content}`;
+                }
+                messages.push({ role: 'user', content });
             } else {
-                const charName = msg.senderName || 'Assistant';
-                messages.push({ role: 'assistant', content: msg.content });}
+                messages.push({ role: 'assistant', content: msg.content });
+            }
         });
 
         return messages;
     }
 
-    // Check if summary is needed (every 30 messages)
     async function checkAndSummarize(convId) {
         const allMsgs = Store.getMessages(convId);
-        const existingSummary = Store.getSummary(convId);
+        if (allMsgs.length === 0 || allMsgs.length % 30 !== 0) return;
 
-        // Summarize every 30 messages
-        if (allMsgs.length > 0 && allMsgs.length % 30 === 0) {
-            try {
-                const settings = Store.getSettings();
-                const msgsToSummarize = allMsgs.slice(-35, -5); // Summarize older messages
+        try {
+            const settings = Store.getSettings();
+            const existingSummary = Store.getSummary(convId);
+            const msgsToSummarize = allMsgs.slice(-35, -5);
+            if (msgsToSummarize.length === 0) return;
 
-                if (msgsToSummarize.length === 0) return;
+            const conversationText = msgsToSummarize.map(m => {
+                const name = m.senderName || (m.senderId === '__user__' ? (settings.username || 'User') : 'Assistant');
+                return `${name}: ${m.content}`;
+            }).join('\n');
 
-                const conversationText = msgsToSummarize.map(m => {
-                    const name = m.senderName || (m.senderId === '__user__' ? settings.username : 'Assistant');
-                    return `${name}: ${m.content}`;
-                }).join('\n');
+            let prompt = settings.summaryPrompt || getDefaultSummaryPrompt();
+            prompt = prompt.replace('{{conversation}}', conversationText);
 
-                let prompt = settings.summaryPrompt || Store.getSettings().summaryPrompt;
-                prompt = prompt.replace('{{conversation}}', conversationText);
-
-                if (existingSummary) {
-                    prompt = `Previous summary:\n${existingSummary}\n\n` + prompt;
-                }
-
-                const summary = await chat([
-                    { role: 'system', content: 'You are a precise summarizer.' },
-                    { role: 'user', content: prompt }
-                ], { temperature: 0.3, max_tokens: 500 });
-
-                Store.saveSummary(convId, summary);return summary;
-            } catch (e) {
-                console.error('Summary failed:', e);
+            if (existingSummary) {
+                prompt = `Previous summary:\n${existingSummary}\n\n` + prompt;
             }
+
+            const summary = await chat([
+                { role: 'system', content: 'You are a precise conversation summarizer.' },
+                { role: 'user', content: prompt }
+            ], { temperature: 0.3, max_tokens: 500 });
+
+            Store.saveSummary(convId, summary);
+            return summary;
+        } catch (e) {
+            console.error('Summary failed:', e);
         }
+    }
+
+    function getDefaultSummaryPrompt() {
+        return `Summarize the following conversation concisely, preserving key facts, character traits, emotional states, and important plot points. Write in third person. Keep it under 300 words.\n\nConversation:\n{{conversation}}\n\nSummary:`;
     }
 
     return { fetchModels, chat, buildMessages, checkAndSummarize };

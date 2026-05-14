@@ -245,3 +245,123 @@
 .send-btn:active {
     transform: scale(0.9);
 }
+.chat-messages {
+    /* 背景由 JS 动态设置 style */
+    background-size: cover;
+    background-position: center;
+}
+.msg-sticker { font-size: 48px; line-height: 1; padding: 4px; }
+.msg-special {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border-color);
+    min-width: 140px;
+}
+.msg-special span { font-size: 12px; color: var(--text-muted); }
+.msg-special.redpacket { border-color: var(--accent-red); background: var(--accent-red-dim); }
+.msg-special.transfer { border-color: var(--accent-green); }
+/* Extra button */
+.extra-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.extra-btn:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+/* Special messages */
+.msg-sticker {
+    font-size: 52px;
+    line-height: 1;
+    padding: 4px 0;
+}
+
+.msg-special {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    min-width: 160px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-color);
+}
+
+.msg-special .special-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.msg-special .special-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.msg-special .special-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.msg-special.redpacket {
+    border-color: rgba(180, 60, 60, 0.4);
+    background: rgba(139, 58, 58, 0.2);
+}
+
+.msg-special.transfer {
+    border-color: rgba(60, 140, 60, 0.4);
+    background: rgba(58, 107, 58, 0.2);
+}
+
+.msg-special.location {
+    border-color: rgba(60, 100, 180, 0.4);
+    background: rgba(40, 70, 140, 0.2);
+}
+
+.msg-special.payment {
+    border-color: rgba(140, 100, 40, 0.4);
+    background: rgba(100, 70, 20, 0.2);
+}
+
+.msg-special.image-desc {
+    border-color: rgba(100, 60, 160, 0.4);
+    background: rgba(80, 40, 120, 0.2);
+}
+
+/* Edit char button in contact list */
+.edit-char-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.edit-char-btn:hover {
+    color: var(--accent);
+    background: var(--accent-dim);
+}
+
+
