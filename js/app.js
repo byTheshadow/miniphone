@@ -27,24 +27,18 @@ const App = (() => {
     function registerSW() {
         if (!('serviceWorker' in navigator)) return;
         navigator.serviceWorker.register('/miniphone/sw.js').then(reg => {
-            // Check for updates on every load
             reg.update();
-
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New version available — auto reload
                         UI.toast('New version available, updating...');
-                        setTimeout(() => {
-                            newWorker.postMessage({ type: 'SKIP_WAITING' });
-                        }, 1000);
+                        setTimeout(() => newWorker.postMessage({ type: 'SKIP_WAITING' }), 1000);
                     }
                 });
             });
         }).catch(e => console.log('SW registration failed:', e));
 
-        // Reload when new SW takes control
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             window.location.reload();
         });
@@ -56,11 +50,9 @@ const App = (() => {
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.addEventListener('click', () => navigateTo(btn.dataset.page));
         });
-
         document.querySelectorAll('.home-app').forEach(btn => {
             btn.addEventListener('click', () => navigateTo(btn.dataset.page));
         });
-
         document.querySelectorAll('.back-btn').forEach(btn => {
             btn.addEventListener('click', () => navigateTo(btn.dataset.back, true));
         });
@@ -84,7 +76,6 @@ const App = (() => {
 
         nextPage.classList.add('active');
 
-        // Update nav highlight
         const navMap = {
             'home': 'home',
             'chat-list': 'chat-list',
@@ -109,7 +100,6 @@ const App = (() => {
             settings.apiUrl = url;
             settings.apiKey = key;
             Store.saveSettings(settings);
-
             try {
                 UI.toast('Fetching models...');
                 const models = await AI.fetchModels();
@@ -117,7 +107,7 @@ const App = (() => {
                 select.innerHTML = models.map(m =>
                     `<option value="${m}" ${m === settings.model ? 'selected' : ''}>${m}</option>`
                 ).join('');
-                UI.toast(`Found ${models.length} models ✦`);
+                UI.toast('Found ' + models.length + ' models \u2726');
             } catch (e) {
                 UI.toast('Error: ' + e.message);
             }
@@ -129,15 +119,14 @@ const App = (() => {
                 apiKey: document.getElementById('setting-api-key').value.trim(),
                 model: document.getElementById('setting-model').value,
                 username: document.getElementById('setting-username').value.trim() || 'User',
-                userAvatar: document.getElementById('setting-user-avatar').value.trim() || '😈',
+                userAvatar: document.getElementById('setting-user-avatar').value.trim() || '\uD83D\uDE08',
                 persona: document.getElementById('setting-persona').value.trim(),
                 summaryPrompt: document.getElementById('setting-summary-prompt').value.trim()
             };
             Store.saveSettings(settings);
-            UI.toast('Settings saved ✦');
+            UI.toast('Settings saved \u2726');
         });
 
-        // Import char JSON
         document.getElementById('btn-import-char').addEventListener('click', () => {
             document.getElementById('file-import-char').click();
         });
@@ -150,7 +139,7 @@ const App = (() => {
                 try {
                     const data = JSON.parse(ev.target.result);
                     importCharFromJson(data);
-                } catch {
+                } catch (_) {
                     UI.toast('Invalid JSON file');
                 }
             };
@@ -158,7 +147,6 @@ const App = (() => {
             e.target.value = '';
         });
 
-        // Export all data
         document.getElementById('btn-export-data').addEventListener('click', () => {
             const data = Store.exportAll();
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -171,7 +159,6 @@ const App = (() => {
             UI.toast('Data exported');
         });
 
-        // Import all data
         document.getElementById('btn-import-data').addEventListener('click', () => {
             document.getElementById('file-import-data').click();
         });
@@ -186,7 +173,7 @@ const App = (() => {
                     Store.importAll(data);
                     UI.toast('Data imported. Reloading...');
                     setTimeout(() => location.reload(), 1200);
-                } catch {
+                } catch (_) {
                     UI.toast('Invalid backup file');
                 }
             };
@@ -195,40 +182,38 @@ const App = (() => {
         });
     }
 
-    // ── Import Char JSON (fixed) ───────────────────────────────────
+    // ── Import Char JSON ──────────────────────────────────────────
 
     function importCharFromJson(data) {
-        let char = {};
+        var char = {};
 
         if (data.spec === 'chara_card_v2' || data.data) {
-            // V2 format (SillyTavern / TavernAI V2)
-            const d = data.data || {};
+            var d = data.data || {};
             char.name = d.name || data.name || 'Unknown';
             char.persona = [d.description, d.personality, d.mes_example]
                 .filter(Boolean).join('\n\n');
             char.systemPrompt = d.system_prompt || d.scenario || '';
             char.firstMessage = d.first_mes || '';
-            const rawAvatar = data.avatar || d.avatar || '';
-            char.avatar = rawAvatar.startsWith('data:') || rawAvatar.startsWith('http')
-                ? rawAvatar : '👤';
+            var rawAvatar1 = data.avatar || d.avatar || '';
+            char.avatar = (rawAvatar1.startsWith('data:') || rawAvatar1.startsWith('http'))
+                ? rawAvatar1 : '\uD83D\uDC64';
         } else {
-            // V1 / simple format
             char.name = data.name || data.char_name || 'Unknown';
             char.persona = data.description || data.personality || data.persona || '';
             char.systemPrompt = data.system_prompt || data.scenario || '';
             char.firstMessage = data.first_mes || data.greeting || '';
-            const rawAvatar = data.avatar || '';
-            char.avatar = rawAvatar.startsWith('data:') || rawAvatar.startsWith('http')
-                ? rawAvatar : '👤';
+            var rawAvatar2 = data.avatar || '';
+            char.avatar = (rawAvatar2.startsWith('data:') || rawAvatar2.startsWith('http'))
+                ? rawAvatar2 : '\uD83D\uDC64';
         }
 
         if (!char.name || char.name === 'Unknown') {
             UI.toast('Warning: could not read character name');
         }
 
-        const newChar = Store.addChar(char);
+        var newChar = Store.addChar(char);
 
-        const conv = Store.addConversation({
+        var conv = Store.addConversation({
             name: newChar.name,
             charIds: [newChar.id],
             type: 'single'
@@ -245,92 +230,99 @@ const App = (() => {
             });
         }
 
-        UI.toast(`Imported: ${newChar.name} ✦`);
+        UI.toast('Imported: ' + newChar.name + ' \u2726');
     }
 
     // ── Knowledge Books UI ────────────────────────────────────────
 
     function bindKnowledgeBooks() {
-        document.getElementById('btn-manage-kb').addEventListener('click', showKnowledgeBooksModal);
+        var btn = document.getElementById('btn-manage-kb');
+        if (btn) btn.addEventListener('click', showKnowledgeBooksModal);
     }
 
     function showKnowledgeBooksModal() {
         renderKBList();
     }
 
-   function renderKBList() {
-    const books = Store.getKnowledgeBooks();
-    const chars = Store.getChars().filter(c => c.id !== '__model__');
+    function renderKBList() {
+        var books = Store.getKnowledgeBooks();
+        var chars = Store.getChars().filter(function(c) { return c.id !== '__model__'; });
 
-    const booksHtml = books.length === 0
-        ? '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px;">No knowledge books yet</p>'
-        : books.map(b => `
-            <div class="kb-item" style="padding:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;margin-bottom:8px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                        <div>
-                            <div style="font-size:13px;font-weight:500;">${UI.escapeHtml(b.name)}</div>
-                            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-                                ${b.global ? '🌐 Global' : '👤 ' + (Store.getChar(b.charId)?.name || 'Unknown char')}
-                                · ${(b.entries || []).length} entries
-                            </div>
-                        </div>
-                        <div style="display:flex;gap:6px;">
-                            <button class="small-btn kb-edit" data-id="${b.id}">Edit</button>
-                            <button class="small-btn kb-delete" data-id="${b.id}" style="border-color:var(--accent-red);">Del</button>
-                        </div>
-                    </div>
-                </div>`).join('');
+        var booksHtml;
+        if (books.length === 0) {
+            booksHtml = '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px;">No knowledge books yet</p>';
+        } else {
+            booksHtml = books.map(function(b) {
+                var scopeLabel = b.global
+                    ? '\uD83C\uDF10 Global'
+                    : '\uD83D\uDC64 ' + ((Store.getChar(b.charId) || {}).name || 'Unknown char');
+                var entryCount = (b.entries || []).length;
+                return '<div class="kb-item" style="padding:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;margin-bottom:8px;">'
+                    + '<div style="display:flex;align-items:center;justify-content:space-between;">'
+                    + '<div>'
+                    + '<div style="font-size:13px;font-weight:500;">' + UI.escapeHtml(b.name) + '</div>'
+                    + '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'
+                    + UI.escapeHtml(scopeLabel) + ' \u00b7 ' + entryCount + ' entries'
+                    + '</div>'
+                    + '</div>'
+                    + '<div style="display:flex;gap:6px;">'
+                    + '<button class="small-btn kb-edit" data-id="' + b.id + '">Edit</button>'
+                    + '<button class="small-btn kb-delete" data-id="' + b.id + '" style="border-color:var(--accent-red);">Del</button>'
+                    + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+        }
 
-        const charOptions = chars.map(c =>
-            `<option value="${c.id}">${UI.escapeHtml(c.name)}</option>`
-        ).join('');
+        var charOptions = chars.map(function(c) {
+            return '<option value="' + c.id + '">' + UI.escapeHtml(c.name) + '</option>';
+        }).join('');
 
-        UI.showModal(`
-            <h3>📚 Knowledge Books</h3>
-            <div style="max-height:240px;overflow-y:auto;margin-bottom:12px;">
-                ${booksHtml}
-            </div>
-            <div style="border-top:1px solid var(--border-color);padding-top:12px;">
-                <div class="setting-item">
-                    <label>New Book Name</label>
-                    <input type="text" id="kb-new-name" placeholder="e.g. World Lore">
-                </div>
-                <div class="setting-item">
-                    <label>Scope</label>
-                    <select id="kb-new-scope">
-                        <option value="global">🌐 Global (all chats)</option>
-                        ${charOptions ? `<optgroup label="Char-specific">${charOptions}</optgroup>` : ''}
-                    </select>
-                </div>
-            </div>
-            <div class="modal-btns">
-                <button class="gothic-btn" onclick="UI.closeModal()">Close</button>
-                <button class="gothic-btn primary" id="btn-kb-create">Create Book</button>
-            </div>
-        `);
+        var optgroupHtml = charOptions
+            ? '<optgroup label="Char-specific">' + charOptions + '</optgroup>'
+            : '';
 
-        document.getElementById('btn-kb-create').addEventListener('click', () => {
-            const name = document.getElementById('kb-new-name').value.trim();
+        UI.showModal(
+            '<h3>\uD83D\uDCDA Knowledge Books</h3>'
+            + '<div style="max-height:240px;overflow-y:auto;margin-bottom:12px;">'
+            + booksHtml
+            + '</div>'
+            + '<div style="border-top:1px solid var(--border-color);padding-top:12px;">'
+            + '<div class="setting-item"><label>New Book Name</label>'
+            + '<input type="text" id="kb-new-name" placeholder="e.g. World Lore"></div>'
+            + '<div class="setting-item"><label>Scope</label>'
+            + '<select id="kb-new-scope">'
+            + '<option value="global">\uD83C\uDF10 Global (all chats)</option>'
+            + optgroupHtml
+            + '</select></div>'
+            + '</div>'
+            + '<div class="modal-btns">'
+            + '<button class="gothic-btn" onclick="UI.closeModal()">Close</button>'
+            + '<button class="gothic-btn primary" id="btn-kb-create">Create Book</button>'
+            + '</div>'
+        );
+
+        document.getElementById('btn-kb-create').addEventListener('click', function() {
+            var name = document.getElementById('kb-new-name').value.trim();
             if (!name) { UI.toast('Enter a book name'); return; }
-            const scope = document.getElementById('kb-new-scope').value;
-            const isGlobal = scope === 'global';
+            var scope = document.getElementById('kb-new-scope').value;
+            var isGlobal = scope === 'global';
             Store.addKnowledgeBook({
-                name,
+                name: name,
                 global: isGlobal,
                 charId: isGlobal ? null : scope,
                 entries: []
             });
-            UI.toast(`Book "${name}" created`);
+            UI.toast('Book "' + name + '" created');
             renderKBList();
         });
 
-        // Edit / Delete buttons
-        document.querySelectorAll('.kb-edit').forEach(btn => {
-            btn.addEventListener('click', () => showKBEditModal(btn.dataset.id));
+        document.querySelectorAll('.kb-edit').forEach(function(btn) {
+            btn.addEventListener('click', function() { showKBEditModal(btn.dataset.id); });
         });
 
-        document.querySelectorAll('.kb-delete').forEach(btn => {
-            btn.addEventListener('click', () => {
+        document.querySelectorAll('.kb-delete').forEach(function(btn) {
+            btn.addEventListener('click', function() {
                 Store.deleteKnowledgeBook(btn.dataset.id);
                 UI.toast('Book deleted');
                 renderKBList();
@@ -339,72 +331,73 @@ const App = (() => {
     }
 
     function showKBEditModal(bookId) {
-        const book = Store.getKnowledgeBook(bookId);
+        var book = Store.getKnowledgeBook(bookId);
         if (!book) return;
 
-        const entriesHtml = (book.entries || []).map((entry, idx) => `
-            <div class="kb-entry" data-idx="${idx}" style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;">
-                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-                    <input type="text" class="kb-entry-keyword" value="${UI.escapeHtml(entry.keyword || '')}"
-                        placeholder="Keyword (optional)" style="font-size:12px;">
-                    <textarea class="kb-entry-content" rows="2"
-                        style="font-size:12px;">${UI.escapeHtml(entry.content || '')}</textarea>
-                </div>
-                <button class="small-btn kb-entry-del" data-idx="${idx}"
-                    style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">✕</button>
-            </div>`).join('');
+        var entriesHtml = (book.entries || []).map(function(entry, idx) {
+            return '<div class="kb-entry" data-idx="' + idx + '" style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;">'
+                + '<div style="flex:1;display:flex;flex-direction:column;gap:4px;">'
+                + '<input type="text" class="kb-entry-keyword" value="' + UI.escapeHtml(entry.keyword || '') + '" placeholder="Keyword (optional)" style="font-size:12px;">'
+                + '<textarea class="kb-entry-content" rows="2" style="font-size:12px;">' + UI.escapeHtml(entry.content || '') + '</textarea>'
+                + '</div>'
+                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">\u2715</button>'
+                + '</div>';
+        }).join('');
 
-        UI.showModal(`
-            <h3>✎ Edit: ${UI.escapeHtml(book.name)}</h3>
-            <div id="kb-entries-list" style="max-height:300px;overflow-y:auto;margin-bottom:10px;">
-                ${entriesHtml || '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px;">No entries yet</p>'}
-            </div>
-            <button class="gothic-btn full-width" id="btn-kb-add-entry" style="margin-bottom:12px;">＋ Add Entry</button>
-            <div class="modal-btns">
-                <button class="gothic-btn" id="btn-kb-back">← Back</button>
-                <button class="gothic-btn primary" id="btn-kb-save">Save</button>
-            </div>
-        `);
+        var emptyMsg = '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px;">No entries yet</p>';
 
-        document.getElementById('btn-kb-back').addEventListener('click', () => renderKBList());
+        UI.showModal(
+            '<h3>\u270e Edit: ' + UI.escapeHtml(book.name) + '</h3>'
+            + '<div id="kb-entries-list" style="max-height:300px;overflow-y:auto;margin-bottom:10px;">'
+            + (entriesHtml || emptyMsg)
+            + '</div>'
+            + '<button class="gothic-btn full-width" id="btn-kb-add-entry" style="margin-bottom:12px;">\uff0b Add Entry</button>'
+            + '<div class="modal-btns">'
+            + '<button class="gothic-btn" id="btn-kb-back">\u2190 Back</button>'
+            + '<button class="gothic-btn primary" id="btn-kb-save">Save</button>'
+            + '</div>'
+        );
 
-        document.getElementById('btn-kb-add-entry').addEventListener('click', () => {
-            const list = document.getElementById('kb-entries-list');
-            const idx = list.querySelectorAll('.kb-entry').length;
-            const div = document.createElement('div');
+        document.getElementById('btn-kb-back').addEventListener('click', function() { renderKBList(); });
+
+        document.getElementById('btn-kb-add-entry').addEventListener('click', function() {
+            var list = document.getElementById('kb-entries-list');
+            var idx = list.querySelectorAll('.kb-entry').length;
+            var div = document.createElement('div');
             div.className = 'kb-entry';
             div.dataset.idx = idx;
             div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;';
-            div.innerHTML = `
-                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-                    <input type="text" class="kb-entry-keyword" placeholder="Keyword (optional)" style="font-size:12px;">
-                    <textarea class="kb-entry-content" rows="2" style="font-size:12px;"></textarea>
-                </div>
-                <button class="small-btn kb-entry-del" data-idx="${idx}"
-                    style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">✕</button>`;
+            div.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;gap:4px;">'
+                + '<input type="text" class="kb-entry-keyword" placeholder="Keyword (optional)" style="font-size:12px;">'
+                + '<textarea class="kb-entry-content" rows="2" style="font-size:12px;"></textarea>'
+                + '</div>'
+                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">\u2715</button>';
             list.appendChild(div);
             bindEntryDeleteBtns();
         });
 
         bindEntryDeleteBtns();
 
-        document.getElementById('btn-kb-save').addEventListener('click', () => {
-            const entries = [];
-            document.querySelectorAll('.kb-entry').forEach(row => {
-                const keyword = row.querySelector('.kb-entry-keyword')?.value.trim() || '';
-                const content = row.querySelector('.kb-entry-content')?.value.trim() || '';
-                if (content) entries.push({ keyword, content });
+        document.getElementById('btn-kb-save').addEventListener('click', function() {
+            var entries = [];
+            document.querySelectorAll('.kb-entry').forEach(function(row) {
+                var keyword = (row.querySelector('.kb-entry-keyword') || {}).value || '';
+                var content = (row.querySelector('.kb-entry-content') || {}).value || '';
+                keyword = keyword.trim();
+                content = content.trim();
+                if (content) entries.push({ keyword: keyword, content: content });
             });
-            Store.updateKnowledgeBook(bookId, { entries });
-            UI.toast('Knowledge book saved ✦');
+            Store.updateKnowledgeBook(bookId, { entries: entries });
+            UI.toast('Knowledge book saved \u2726');
             renderKBList();
         });
     }
 
     function bindEntryDeleteBtns() {
-        document.querySelectorAll('.kb-entry-del').forEach(btn => {
-            btn.onclick = () => {
-                btn.closest('.kb-entry')?.remove();
+        document.querySelectorAll('.kb-entry-del').forEach(function(btn) {
+            btn.onclick = function() {
+                var entry = btn.closest('.kb-entry');
+                if (entry) entry.remove();
             };
         });
     }
@@ -412,7 +405,7 @@ const App = (() => {
     // ── Load Settings into UI ─────────────────────────────────────
 
     function loadSettings() {
-        const settings = Store.getSettings();
+        var settings = Store.getSettings();
         document.getElementById('setting-api-url').value = settings.apiUrl || '';
         document.getElementById('setting-api-key').value = settings.apiKey || '';
         document.getElementById('setting-username').value = settings.username || '';
@@ -421,13 +414,12 @@ const App = (() => {
         document.getElementById('setting-summary-prompt').value = settings.summaryPrompt || '';
 
         if (settings.model) {
-            const select = document.getElementById('setting-model');
-            select.innerHTML = `<option value="${settings.model}" selected>${settings.model}</option>`;
+            var select = document.getElementById('setting-model');
+            select.innerHTML = '<option value="' + settings.model + '" selected>' + settings.model + '</option>';
         }
     }
 
-    return { init, navigateTo };
+    return { init: init, navigateTo: navigateTo };
 })();
 
-document.addEventListener('DOMContentLoaded', () => App.init());
-
+document.addEventListener('DOMContentLoaded', function() { App.init(); });
