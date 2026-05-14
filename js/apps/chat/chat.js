@@ -1,91 +1,78 @@
-/* ========== Chat App 模块 开始 ========== */
+/* ========== ChatApp 聊天应用 开始 ========== */
 
 const ChatApp = (() => {
   'use strict';
 
   /* ========== 常量 开始 ========== */
   const STORE_KEY = 'chat_data';
-  const SUMMARY_EVERY = 30; // 每30条触发一次总结
+  const AUTO_SUMMARY_EVERY = 30; // 每30条消息自动总结
   /* ========== 常量 结束 ========== */
 
-  /* ========== 内置贴纸库 开始 ========== */
-  const STICKER_PACKS = [
-    {
-      id: 'basic',
-      icon: '😊',
-      name: '基础',
-      stickers: ['😊','😂','🥹','😍','🥰','😘','😎','🤩','😭','😤','😡','🥺','😴','🤔','😏','🫡','🤗','😇','🥳','😱'],
+  /* ========== 默认数据 开始 ========== */
+  const DEFAULT_DATA = {
+    myProfile: {
+      name: '我',
+      avatarUrl: '',
+      bio: '',
     },
-    {
-      id: 'love',
-      icon: '❤️',
-      name: '爱心',
-      stickers: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💞','💓','💗','💖','💝','💘','💟','❣️','💔','🫀','♥️'],
-    },
-    {
-      id: 'gesture',
-      icon: '👍',
-      name: '手势',
-      stickers: ['👍','👎','👏','🙌','🤝','🫶','✌️','🤞','🤟','🤘','👌','🤌','🤏','☝️','👆','👇','👈','👉','🫵','✋'],
-    },
-    {
-      id: 'nature',
-      icon: '🌸',
-      name: '自然',
-      stickers: ['🌸','🌺','🌻','🌹','🌷','🌼','💐','🍀','🌿','🍃','🌱','🌲','🌳','🍁','🍂','🌾','🌵','🎋','🎍','🪴'],
-    },
-    {
-      id: 'food',
-      icon: '🍰',
-      name: '美食',
-      stickers: ['🍰','🎂','🧁','🍩','🍪','🍫','🍬','🍭','🍮','🍯','🍦','🍧','🍨','🍡','🧃','🧋','☕','🍵','🥤','🍺'],
-    },
-  ];
-  /* ========== 内置贴纸库 结束 ========== */
+    characters: [],
+    groups: [],
+    conversations: {},
+    stickers: [],
+    summaryPrompt: `请将以下对话内容总结为简洁的摘要（200字以内），保留关键情节、人物关系变化和重要信息，以便后续对话参考。`,
+    backgrounds: {},
+  };
+  /* ========== 默认数据 结束 ========== */
 
   /* ========== 状态 开始 ========== */
-  let _data = null;          // { contacts: [], groups: [], userStickers: [] }
-  let _currentChatId = null; // 当前打开的聊天 ID
-  let _currentTab = 'chats'; // 'chats' | 'groups'
-  let _stickerTab = 0;       // 当前贴纸包索引
-  let _stickerPanelOpen = false;
-  let _isAiTyping = false;
+  let _data = null;
+  let _currentConvId = null; // 当前打开的会话ID
+  let _streamController = null; // AbortController for streaming
+  let _availableModels = []; // 从API获取的模型列表
   /* ========== 状态 结束 ========== */
 
-  /* ========== 数据初始化 开始 ========== */
+  /* ========== 数据持久化 开始 ========== */
   function loadData() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) {
-        _data = JSON.parse(raw);
+        const saved = JSON.parse(raw);
+        _data = Object.assign({}, DEFAULT_DATA, saved);
+        // 确保子对象存在
+        _data.myProfile = Object.assign({}, DEFAULT_DATA.myProfile, saved.myProfile || {});
+        _data.characters = saved.characters || [];
+        _data.groups = saved.groups || [];
+        _data.conversations = saved.conversations || {};
+        _data.stickers = saved.stickers || [];
+        _data.summaryPrompt = saved.summaryPrompt || DEFAULT_DATA.summaryPrompt;
+        _data.backgrounds = saved.backgrounds || {};
+      } else {
+        _data = JSON.parse(JSON.stringify(DEFAULT_DATA));
       }
-    } catch (e) { /* ignore */ }
-
-    if (!_data) {
-      _data = { contacts: [], groups: [], userStickers: [] };
+    } catch (e) {
+      console.warn('[ChatApp] 加载数据失败', e);
+      _data = JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
-    // 兼容旧数据结构
-    if (!_data.contacts) _data.contacts = [];
-    if (!_data.groups)   _data.groups   = [];
-    if (!_data.userStickers) _data.userStickers = [];
   }
 
   function saveData() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(_data));
     } catch (e) {
-      MiniApp.showToast('存储空间不足 ⚠️');
+      console.warn('[ChatApp] 保存数据失败', e);
     }
   }
-  /* ========== 数据初始化 结束 ========== */
+  /* ========== 数据持久化 结束 ========== */
+
+  /* ========== ID生成 开始 ========== */
+  function genId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  /* ========== ID生成 结束 ========== */
 
   /* ========== 工具函数 开始 ========== */
-  function genId() {
-    return 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  }
-
-  function escHtml(str) {
-    return String(str)
+  function escapeHtml(str) {
+    return String(str || '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -94,1572 +81,1891 @@ const ChatApp = (() => {
 
   function formatTime(ts) {
     const d = new Date(ts);
-    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
-  }
-
-  function formatListTime(ts) {
-    if (!ts) return '';
     const now = new Date();
-    const d = new Date(ts);
-    const diffDays = Math.floor((now - d) / 86400000);
-    if (diffDays === 0) return formatTime(ts);
-    if (diffDays === 1) return '昨天';
-    if (diffDays < 7)  return ['日','一','二','三','四','五','六'][d.getDay()] ? `周${['日','一','二','三','四','五','六'][d.getDay()]}` : '';
-    return `${d.getMonth() + 1}/${d.getDate()}`;
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) {
+      return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+    return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }) + ' ' +
+      d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
   }
 
-  function formatDateDivider(ts) {
-    const now = new Date();
-    const d = new Date(ts);
-    const diffDays = Math.floor((now - d) / 86400000);
-    if (diffDays === 0) return '今天';
-    if (diffDays === 1) return '昨天';
-    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  function getConv(convId) {
+    if (!_data.conversations[convId]) {
+      _data.conversations[convId] = { messages: [], summaries: [] };
+    }
+    return _data.conversations[convId];
   }
 
-  function needDateDivider(msgs, index) {
-    if (index === 0) return true;
-    const prev = new Date(msgs[index - 1].ts);
-    const curr = new Date(msgs[index].ts);
-    return prev.toDateString() !== curr.toDateString();
+  function getCharById(id) {
+    return _data.characters.find(c => c.id === id);
   }
 
-  function isConsecutive(msgs, index) {
-    if (index === 0) return false;
-    const prev = msgs[index - 1];
-    const curr = msgs[index];
-    return prev.role === curr.role &&
-           prev.senderId === curr.senderId &&
-           (curr.ts - prev.ts) < 60000;
+  function getGroupById(id) {
+    return _data.groups.find(g => g.id === id);
   }
 
-  function getChatById(id) {
-    return _data.contacts.find(c => c.id === id) ||
-           _data.groups.find(g => g.id === id) || null;
-  }
-
-  function isGroup(id) {
-    return _data.groups.some(g => g.id === id);
+  // 获取会话对应的角色或群组信息
+  function getConvInfo(convId) {
+    if (convId.startsWith('char_')) {
+      const char = getCharById(convId.replace('char_', ''));
+      if (char) return { type: 'char', data: char, name: char.name, avatarUrl: char.avatarUrl };
+    } else if (convId.startsWith('group_')) {
+      const group = getGroupById(convId.replace('group_', ''));
+      if (group) return { type: 'group', data: group, name: group.name, avatarUrl: group.avatarUrl };
+    }
+    return null;
   }
   /* ========== 工具函数 结束 ========== */
 
-  /* ========== App 入口 开始 ========== */
-function open() {
-  loadData();
-  const $content = document.getElementById('app-content');
-  const $appView = document.getElementById('app-view'); // 先定义
-  
-  // 然后再使用
-  $appView.style.background = 'var(--chat-bg)';
-  $appView.style.overflowY = 'hidden';
-  $appView.style.padding = '0';
-
-  $content.style.padding = '0';
-  $content.style.minHeight = 'unset';
-  $content.style.height = '100%';
-
-  renderListView($content);
-}
-/* ========== App 入口 结束 ========== */
-
-
-  /* ========== 聊天列表视图 开始 ========== */
-  function renderListView($container) {
-    _currentChatId = null;
-
-    const allChats = getTabChats();
-    const listHtml = allChats.length
-      ? allChats.map(c => renderChatListItem(c)).join('')
-      : renderEmptyList();
-
-    $container.innerHTML = `
-      <div class="chat-app">
-        <!-- 顶部栏 -->
-        <div class="chat-header">
-          <button class="chat-header__back" id="chat-back-home" aria-label="返回主屏幕">
-            <svg width="10" height="17" viewBox="0 0 10 17" fill="none">
-              <path d="M9 1L1.5 8.5L9 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div class="chat-header__info">
-            <div class="chat-header__name">聊天</div>
-          </div>
-          <div class="chat-header__actions">
-            <button class="chat-header__btn" id="chat-new-btn" aria-label="新建聊天">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M10 6v8M6 10h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Tab 切换 -->
-        <div class="chat-list-tabs">
-          <button class="chat-list-tab ${_currentTab === 'chats' ? 'active' : ''}" data-tab="chats">私聊</button>
-          <button class="chat-list-tab ${_currentTab === 'groups' ? 'active' : ''}" data-tab="groups">群聊</button>
-        </div>
-
-        <!-- 列表 -->
-        <div class="chat-list-scroll" id="chat-list-scroll">
-          ${listHtml}
-        </div>
-
-        <!-- 新建 FAB（群聊 tab 时显示） -->
-        ${_currentTab === 'groups' ? `<button class="chat-fab" id="chat-new-group-fab" aria-label="新建群聊">＋</button>` : ''}
-      </div>
-    `;
-
-    bindListEvents($container);
-  }
-
-  function getTabChats() {
-    const list = _currentTab === 'chats' ? _data.contacts : _data.groups;
-    return [...list].sort((a, b) => {
-      const ta = a.messages?.at(-1)?.ts || 0;
-      const tb = b.messages?.at(-1)?.ts || 0;
-      return tb - ta;
-    });
-  }
-
-  function renderChatListItem(chat) {
-    const lastMsg = chat.messages?.at(-1);
-    const preview = lastMsg
-      ? (lastMsg.type === 'sticker' ? '[贴纸]' : lastMsg.type === 'image' ? '[图片]' : escHtml(String(lastMsg.content || '').slice(0, 40)))
-      : '暂无消息';
-    const timeStr = formatListTime(lastMsg?.ts);
-    const unread = chat.unread || 0;
-
-    let avatarHtml;
-    if (chat.isGroup) {
-      const members = (chat.members || []).slice(0, 4);
-      avatarHtml = `<div class="chat-list-item__avatar chat-list-item__avatar--group">
-        ${members.map(m => `<span>${m.avatar || '👤'}</span>`).join('')}
-      </div>`;
-    } else if (chat.avatarUrl) {
-      avatarHtml = `<div class="chat-list-item__avatar"><img src="${escHtml(chat.avatarUrl)}" alt="" onerror="this.parentElement.textContent='${escHtml(chat.avatar || '👤')}'"></div>`;
-    } else {
-      avatarHtml = `<div class="chat-list-item__avatar">${escHtml(chat.avatar || '👤')}</div>`;
-    }
-
-    return `
-      <div class="chat-list-item" data-chat-id="${escHtml(chat.id)}">
-        ${avatarHtml}
-        <div class="chat-list-item__body">
-          <div class="chat-list-item__top">
-            <span class="chat-list-item__name">${escHtml(chat.name)}</span>
-            <span class="chat-list-item__time">${timeStr}</span>
-          </div>
-          <div class="chat-list-item__preview">${preview}</div>
-        </div>
-        ${unread > 0 ? `<div class="chat-list-item__badge">${unread > 99 ? '99+' : unread}</div>` : ''}
-      </div>
-    `;
-  }
-
-  function renderEmptyList() {
-    const isGroup = _currentTab === 'groups';
-    return `
-      <div class="chat-list-empty">
-        <div class="chat-list-empty__icon">${isGroup ? '👥' : '💬'}</div>
-        <div class="chat-list-empty__text">${isGroup ? '还没有群聊' : '还没有聊天'}</div>
-        <div class="chat-list-empty__sub">${isGroup ? '点击右上角 + 创建群聊' : '点击右上角 + 添加角色卡开始聊天'}</div>
-      </div>
-    `;
-  }
-
-  function bindListEvents($container) {
-    $container.querySelector('#chat-back-home')?.addEventListener('click', () => {
-      document.getElementById('app-view').style.overflowY = '';
-      document.getElementById('app-content').style.padding = '';
-      document.getElementById('app-content').style.minHeight = '';
-      document.getElementById('app-content').style.height = '';
-      MiniApp.closeApp();
-    });
-
-    $container.querySelectorAll('.chat-list-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        _currentTab = tab.dataset.tab;
-        renderListView($container);
-      });
-    });
-
-    $container.querySelector('#chat-new-btn')?.addEventListener('click', () => {
-      if (_currentTab === 'groups') openNewGroupModal($container);
-      else openNewChatModal($container);
-    });
-
-    $container.querySelector('#chat-new-group-fab')?.addEventListener('click', () => {
-      openNewGroupModal($container);
-    });
-
-    $container.querySelectorAll('.chat-list-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const id = item.dataset.chatId;
-        const chat = getChatById(id);
-        if (!chat) return;
-        // 清除未读
-        chat.unread = 0;
-        saveData();
-        openChatView($container, id);
-      });
-    });
-  }
-  /* ========== 聊天列表视图 结束 ========== */
-
-  /* ========== 聊天消息视图 开始 ========== */
-  function openChatView($container, chatId) {
-    _currentChatId = chatId;
-    _stickerPanelOpen = false;
-    const chat = getChatById(chatId);
-    if (!chat) return;
-
-    renderChatView($container, chat);
-  }
-
-  function renderChatView($container, chat) {
-    const hasSummary = !!chat.summary;
-
-    let avatarHtml;
-    if (chat.avatarUrl) {
-      avatarHtml = `<div class="chat-header__avatar"><img src="${escHtml(chat.avatarUrl)}" alt=""></div>`;
-    } else {
-      avatarHtml = `<div class="chat-header__avatar">${escHtml(chat.avatar || '👤')}</div>`;
-    }
-
-    $container.innerHTML = `
-      <div class="chat-app">
-        <!-- 顶部栏 -->
-        <div class="chat-header">
-          <button class="chat-header__back" id="chat-back-list" aria-label="返回列表">
-            <svg width="10" height="17" viewBox="0 0 10 17" fill="none">
-              <path d="M9 1L1.5 8.5L9 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          ${avatarHtml}
-          <div class="chat-header__info">
-            <div class="chat-header__name">${escHtml(chat.name)}</div>
-            <div class="chat-header__sub">${chat.isGroup ? `${(chat.members || []).length} 位成员` : escHtml(chat.persona?.slice(0, 30) || '')}</div>
-          </div>
-          <div class="chat-header__actions">
-            <button class="chat-header__btn" id="chat-sidebar-btn" aria-label="聊天信息">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="5" r="1.5" fill="currentColor"/>
-                <circle cx="10" cy="10" r="1.5" fill="currentColor"/>
-                <circle cx="10" cy="15" r="1.5" fill="currentColor"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- 总结提示条 -->
-        ${hasSummary ? `
-          <div class="chat-summary-banner" id="chat-summary-banner">
-            <span class="chat-summary-banner__icon">📝</span>
-            <span class="chat-summary-banner__text">${escHtml(chat.summary.slice(0, 60))}…</span>
-            <span class="chat-summary-banner__arrow">›</span>
-          </div>
-        ` : ''}
-
-        <!-- 消息区 -->
-        <div class="chat-messages-scroll" id="chat-messages-scroll">
-          ${renderMessages(chat)}
-        </div>
-
-        <!-- 输入栏 -->
-        <div class="chat-input-bar" id="chat-input-bar">
-          <button class="chat-input-bar__btn" id="chat-sticker-btn" aria-label="贴纸">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <circle cx="11" cy="11" r="9.5" stroke="currentColor" stroke-width="1.5"/>
-              <circle cx="8" cy="9.5" r="1.2" fill="currentColor"/>
-              <circle cx="14" cy="9.5" r="1.2" fill="currentColor"/>
-              <path d="M7.5 13.5c.8 1.5 6.2 1.5 7 0" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-            </svg>
-          </button>
-          <div class="chat-input-wrap">
-            <textarea class="chat-input" id="chat-input" rows="1" placeholder="输入消息…" aria-label="消息输入框"></textarea>
-          </div>
-          <button class="chat-send-btn" id="chat-send-btn" aria-label="发送">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="currentColor"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- 贴纸面板（默认隐藏） -->
-        <div class="chat-sticker-panel" id="chat-sticker-panel" style="display:none;">
-          <div class="chat-sticker-panel__tabs" id="sticker-tabs"></div>
-          <div class="chat-sticker-grid" id="sticker-grid"></div>
-        </div>
-      </div>
-
-      <!-- 侧边栏 -->
-      <div class="chat-sidebar-overlay" id="chat-sidebar-overlay">
-        <div class="chat-sidebar" id="chat-sidebar">
-          ${renderSidebar(chat)}
-        </div>
-      </div>
-    `;
-
-    scrollToBottom(false);
-    bindChatViewEvents($container, chat);
-  }
-
-  function renderMessages(chat) {
-    const msgs = chat.messages || [];
-    if (!msgs.length) {
-      return `<div style="text-align:center;padding:40px 0;color:var(--chat-timestamp);font-size:13px;">
-        发送第一条消息吧 👋
-      </div>`;
-    }
-
-    let html = '';
-    msgs.forEach((msg, i) => {
-      if (needDateDivider(msgs, i)) {
-        html += `<div class="chat-date-divider"><span>${formatDateDivider(msg.ts)}</span></div>`;
-      }
-
-      if (msg.type === 'system') {
-        html += `<div class="chat-msg-system">${escHtml(msg.content)}</div>`;
-        return;
-      }
-
-      const isMe = msg.role === 'user';
-      const consecutive = isConsecutive(msgs, i);
-      const chat_obj = getChatById(_currentChatId);
-
-      // 头像
-      let avatarHtml = '';
-      if (!isMe) {
-        let avatarContent;
-        if (chat_obj?.isGroup) {
-          const member = (chat_obj.members || []).find(m => m.id === msg.senderId);
-          avatarContent = member?.avatarUrl
-            ? `<img src="${escHtml(member.avatarUrl)}" alt="">`
-            : escHtml(member?.avatar || '👤');
-        } else {
-          avatarContent = chat_obj?.avatarUrl
-            ? `<img src="${escHtml(chat_obj.avatarUrl)}" alt="">`
-            : escHtml(chat_obj?.avatar || '👤');
-        }
-        avatarHtml = `<div class="chat-msg-avatar">${avatarContent}</div>`;
-      }
-
-      // 气泡内容
-      let bubbleContent;
-      if (msg.type === 'sticker') {
-        bubbleContent = `<div class="chat-bubble chat-bubble--sticker">
-          ${msg.stickerUrl
-            ? `<img src="${escHtml(msg.stickerUrl)}" alt="贴纸">`
-            : `<span class="sticker-emoji">${escHtml(msg.content)}
-                        </span>`
-          }
-        </div>`;
-      } else if (msg.type === 'image') {
-        bubbleContent = `<div class="chat-bubble chat-bubble--image">
-          <img src="${escHtml(msg.content)}" alt="图片" loading="lazy">
-        </div>`;
-      } else {
-        bubbleContent = `<div class="chat-bubble chat-bubble--${isMe ? 'me' : 'other'}">${escHtml(msg.content)}</div>`;
-      }
-
-      // 发送者名字（群聊非连续时显示）
-      let senderName = '';
-      if (!isMe && chat_obj?.isGroup && !consecutive) {
-        const member = (chat_obj.members || []).find(m => m.id === msg.senderId);
-        if (member) {
-          senderName = `<div class="chat-msg-sender">${escHtml(member.name)}</div>`;
-        }
-      }
-
-      // 时间 + 已读
-      const metaHtml = `
-        <div class="chat-msg-meta">
-          <span class="chat-msg-time">${formatTime(msg.ts)}</span>
-          ${isMe ? `<span class="chat-msg-read">已读</span>` : ''}
-        </div>
-      `;
-
-      html += `
-        <div class="chat-msg-row ${isMe ? 'chat-msg-row--me' : ''} ${consecutive ? 'chat-msg-row--consecutive' : ''}">
-          ${!isMe ? avatarHtml : ''}
-          <div class="chat-msg-content">
-            ${senderName}
-            ${bubbleContent}
-            ${metaHtml}
-          </div>
-          ${isMe ? avatarHtml : ''}
-        </div>
-      `;
-    });
-
-    return html;
-  }
-
-  function renderSidebar(chat) {
-    const isGrp = !!chat.isGroup;
-    return `
-      <div class="chat-sidebar__header">
-        <div class="chat-sidebar__avatar">
-          ${chat.avatarUrl
-            ? `<img src="${escHtml(chat.avatarUrl)}" alt="">`
-            : escHtml(chat.avatar || '👤')}
-        </div>
-        <div class="chat-sidebar__name">${escHtml(chat.name)}</div>
-        <div class="chat-sidebar__sub">${isGrp ? `${(chat.members || []).length} 位成员` : escHtml(chat.persona?.slice(0, 50) || '暂无简介')}</div>
-      </div>
-
-      ${!isGrp ? `
-      <div class="chat-sidebar__section">
-        <div class="chat-sidebar__section-title">角色设定</div>
-        <div class="chat-sidebar__summary-box">${escHtml(chat.systemPrompt || '未设置系统提示词')}</div>
-      </div>
-      ` : ''}
-
-      ${chat.summary ? `
-      <div class="chat-sidebar__section">
-        <div class="chat-sidebar__section-title">对话摘要</div>
-        <div class="chat-sidebar__summary-box">${escHtml(chat.summary)}</div>
-      </div>
-      ` : ''}
-
-      ${isGrp ? `
-      <div class="chat-sidebar__section">
-        <div class="chat-sidebar__section-title">群成员</div>
-        ${(chat.members || []).map(m => `
-          <div class="chat-sidebar__row">
-            <span>${escHtml(m.avatar || '👤')} ${escHtml(m.name)}</span>
-            <span class="chat-sidebar__row-label">${escHtml(m.persona?.slice(0, 12) || '')}</span>
-          </div>
-        `).join('')}
-      </div>
-      ` : ''}
-
-      <div class="chat-sidebar__section">
-        <div class="chat-sidebar__section-title">知识书</div>
-        <div id="sidebar-kb-list">
-          ${renderKbList(chat)}
-        </div>
-        <button class="chat-sidebar__action" id="sidebar-kb-add">
-          <span>📖</span> 添加知识条目
-        </button>
-      </div>
-
-      <div class="chat-sidebar__section">
-        <button class="chat-sidebar__action" id="sidebar-edit-btn">
-          <span>✏️</span> 编辑${isGrp ? '群聊' : '角色卡'}
-        </button>
-        <button class="chat-sidebar__action" id="sidebar-clear-btn">
-          <span>🗑️</span> 清空聊天记录
-        </button>
-        <button class="chat-sidebar__action chat-sidebar__action--danger" id="sidebar-delete-btn">
-          <span>❌</span> 删除${isGrp ? '群聊' : '联系人'}
-        </button>
-      </div>
-    `;
-  }
-
-  function renderKbList(chat) {
-    const kb = chat.knowledgeBase || [];
-    if (!kb.length) return `<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0 8px;">暂无知识条目</div>`;
-    return kb.map((item, i) => `
-      <div class="chat-kb-item">
-        <span class="chat-kb-item__icon">📌</span>
-        <span class="chat-kb-item__text">${escHtml(item)}</span>
-        <button class="chat-kb-item__del" data-kb-index="${i}" aria-label="删除">✕</button>
-      </div>
-    `).join('');
-  }
-  /* ========== 聊天消息视图 结束 ========== */
-
-  /* ========== 聊天视图事件绑定 开始 ========== */
-  function bindChatViewEvents($container, chat) {
-    // 返回列表
-    $container.querySelector('#chat-back-list')?.addEventListener('click', () => {
-      renderListView($container);
-    });
-
-    // 总结提示条点击
-    $container.querySelector('#chat-summary-banner')?.addEventListener('click', () => {
-      openSidebar();
-    });
-
-    // 侧边栏
-    $container.querySelector('#chat-sidebar-btn')?.addEventListener('click', openSidebar);
-    $container.querySelector('#chat-sidebar-overlay')?.addEventListener('click', (e) => {
-      if (e.target === $container.querySelector('#chat-sidebar-overlay')) closeSidebar();
-    });
-
-    function openSidebar() {
-      $container.querySelector('#chat-sidebar-overlay')?.classList.add('open');
-      bindSidebarEvents($container, chat);
-    }
-
-    function closeSidebar() {
-      $container.querySelector('#chat-sidebar-overlay')?.classList.remove('open');
-    }
-
-    // 输入框自动扩展
-    const $input = $container.querySelector('#chat-input');
-    const $sendBtn = $container.querySelector('#chat-send-btn');
-
-    $input?.addEventListener('input', () => {
-      $input.style.height = 'auto';
-      $input.style.height = Math.min($input.scrollHeight, 108) + 'px';
-      $sendBtn?.classList.toggle('active', $input.value.trim().length > 0);
-    });
-
-    $input?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    // 发送按钮
-    $sendBtn?.addEventListener('click', sendMessage);
-
-    // 贴纸按钮
-    $container.querySelector('#chat-sticker-btn')?.addEventListener('click', toggleStickerPanel);
-
-    function sendMessage() {
-      const text = $input?.value.trim();
-      if (!text || _isAiTyping) return;
-      $input.value = '';
-      $input.style.height = 'auto';
-      $sendBtn?.classList.remove('active');
-      addMessage(chat, { role: 'user', type: 'text', content: text });
-      triggerAiReply(chat, $container);
-    }
-
-    function toggleStickerPanel() {
-      _stickerPanelOpen = !_stickerPanelOpen;
-      const $panel = $container.querySelector('#chat-sticker-panel');
-      if (!$panel) return;
-      if (_stickerPanelOpen) {
-        $panel.style.display = 'block';
-        renderStickerPanel($container, chat);
-        // 收起键盘
-        $input?.blur();
-      } else {
-        $panel.style.display = 'none';
-      }
-    }
-  }
-  /* ========== 聊天视图事件绑定 结束 ========== */
-
-  /* ========== 侧边栏事件 开始 ========== */
-  function bindSidebarEvents($container, chat) {
-    // 知识书删除
-    $container.querySelectorAll('.chat-kb-item__del').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.kbIndex);
-        if (!chat.knowledgeBase) return;
-        chat.knowledgeBase.splice(idx, 1);
-        saveData();
-        $container.querySelector('#sidebar-kb-list').innerHTML = renderKbList(chat);
-        bindSidebarEvents($container, chat);
-        MiniApp.showToast('已删除知识条目');
-      });
-    });
-
-    // 添加知识条目
-    $container.querySelector('#sidebar-kb-add')?.addEventListener('click', () => {
-      openKbAddModal($container, chat);
-    });
-
-    // 编辑
-    $container.querySelector('#sidebar-edit-btn')?.addEventListener('click', () => {
-      $container.querySelector('#chat-sidebar-overlay')?.classList.remove('open');
-      if (chat.isGroup) openEditGroupModal($container, chat);
-      else openEditChatModal($container, chat);
-    });
-
-    // 清空记录
-    $container.querySelector('#sidebar-clear-btn')?.addEventListener('click', () => {
-      if (!confirm('确定清空所有聊天记录？')) return;
-      chat.messages = [];
-      chat.summary = '';
-      saveData();
-      $container.querySelector('#chat-sidebar-overlay')?.classList.remove('open');
-      renderChatView($container, chat);
-      MiniApp.showToast('聊天记录已清空');
-    });
-
-    // 删除联系人/群聊
-    $container.querySelector('#sidebar-delete-btn')?.addEventListener('click', () => {
-      if (!confirm(`确定删除「${chat.name}」？`)) return;
-      if (chat.isGroup) {
-        _data.groups = _data.groups.filter(g => g.id !== chat.id);
-      } else {
-        _data.contacts = _data.contacts.filter(c => c.id !== chat.id);
-      }
-      saveData();
-      renderListView($container);
-      MiniApp.showToast('已删除');
-    });
-  }
-  /* ========== 侧边栏事件 结束 ========== */
-
-  /* ========== 消息操作 开始 ========== */
-  function addMessage(chat, msgData) {
-    if (!chat.messages) chat.messages = [];
-    const msg = {
-      id: genId(),
-      ts: Date.now(),
-      ...msgData,
-    };
-    chat.messages.push(msg);
-    saveData();
-    appendMessageToDOM(msg, chat);
-    scrollToBottom(true);
-    checkAutoSummary(chat);
-    return msg;
-  }
-
-  function appendMessageToDOM(msg, chat) {
-    const $scroll = document.getElementById('chat-messages-scroll');
-    if (!$scroll) return;
-
-    const msgs = chat.messages || [];
-    const index = msgs.findIndex(m => m.id === msg.id);
-    const isMe = msg.role === 'user';
-    const consecutive = isConsecutive(msgs, index);
-
-    // 日期分隔线
-    if (needDateDivider(msgs, index)) {
-      const divider = document.createElement('div');
-      divider.className = 'chat-date-divider';
-      divider.innerHTML = `<span>${formatDateDivider(msg.ts)}</span>`;
-      $scroll.appendChild(divider);
-    }
-
-    if (msg.type === 'system') {
-      const el = document.createElement('div');
-      el.className = 'chat-msg-system';
-      el.textContent = msg.content;
-      $scroll.appendChild(el);
-      return;
-    }
-
-    // 头像
-    let avatarHtml = '';
-    if (!isMe) {
-      let avatarContent;
-      if (chat.isGroup) {
-        const member = (chat.members || []).find(m => m.id === msg.senderId);
-        avatarContent = member?.avatarUrl
-          ? `<img src="${escHtml(member.avatarUrl)}" alt="">`
-          : escHtml(member?.avatar || '👤');
-      } else {
-        avatarContent = chat.avatarUrl
-          ? `<img src="${escHtml(chat.avatarUrl)}" alt="">`
-          : escHtml(chat.avatar || '👤');
-      }
-      avatarHtml = `<div class="chat-msg-avatar">${avatarContent}</div>`;
-    }
-
-    // 气泡
-    let bubbleContent;
-    if (msg.type === 'sticker') {
-      bubbleContent = `<div class="chat-bubble chat-bubble--sticker">
-        ${msg.stickerUrl
-          ? `<img src="${escHtml(msg.stickerUrl)}" alt="贴纸">`
-          : `<span class="sticker-emoji">${escHtml(msg.content)}</span>`}
-      </div>`;
-    } else if (msg.type === 'image') {
-      bubbleContent = `<div class="chat-bubble chat-bubble--image">
-        <img src="${escHtml(msg.content)}" alt="图片" loading="lazy">
-      </div>`;
-    } else {
-      bubbleContent = `<div class="chat-bubble chat-bubble--${isMe ? 'me' : 'other'}">${escHtml(msg.content)}</div>`;
-    }
-
-    // 发送者名（群聊）
-    let senderName = '';
-    if (!isMe && chat.isGroup && !consecutive) {
-      const member = (chat.members || []).find(m => m.id === msg.senderId);
-      if (member) senderName = `<div class="chat-msg-sender">${escHtml(member.name)}</div>`;
-    }
-
-    const metaHtml = `
-      <div class="chat-msg-meta">
-        <span class="chat-msg-time">${formatTime(msg.ts)}</span>
-        ${isMe ? `<span class="chat-msg-read">已读</span>` : ''}
-      </div>
-    `;
-
-    const row = document.createElement('div');
-    row.className = `chat-msg-row ${isMe ? 'chat-msg-row--me' : ''} ${consecutive ? 'chat-msg-row--consecutive' : ''}`;
-    row.innerHTML = `
-      ${!isMe ? avatarHtml : ''}
-      <div class="chat-msg-content">
-        ${senderName}
-        ${bubbleContent}
-        ${metaHtml}
-      </div>
-      ${isMe ? avatarHtml : ''}
-    `;
-    $scroll.appendChild(row);
-  }
-
-  function scrollToBottom(smooth) {
-    const $scroll = document.getElementById('chat-messages-scroll');
-    if (!$scroll) return;
-    $scroll.scrollTo({ top: $scroll.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
-  }
-  /* ========== 消息操作 结束 ========== */
-
-  /* ========== AI 回复 开始 ========== */
-  async function triggerAiReply(chat, $container) {
-    if (_isAiTyping) return;
-
-    const apiKey  = MiniStore.get('ai.apiKey');
-    const baseUrl = MiniStore.get('ai.baseUrl');
-    const model   = MiniStore.get('ai.model');
-
-    if (!apiKey || !baseUrl) {
-      addMessage(chat, {
-        role: 'assistant',
-        type: 'text',
-        content: '⚙️ 请先在设置中配置 AI 接口（API Key 和 Base URL）',
-        senderId: chat.isGroup ? (chat.members?.[0]?.id) : chat.id,
-      });
-      return;
-    }
-
-    _isAiTyping = true;
-    const typingEl = showTypingIndicator(chat);
-
+  /* ========== AI API 开始 ========== */
+  async function fetchModels() {
+    const ai = MiniStore.get('ai');
+    if (!ai || !ai.baseUrl || !ai.apiKey) return [];
     try {
-      const messages = buildAiMessages(chat);
-      const res = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({ model, messages, stream: false }),
+      const base = ai.baseUrl.replace(/\/$/, '');
+      const resp = await fetch(`${base}/models`, {
+        headers: { 'Authorization': `Bearer ${ai.apiKey}` }
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      const reply = data?.choices?.[0]?.message?.content?.trim();
-      if (!reply) throw new Error('空回复');
-
-      typingEl?.remove();
-
-      if (chat.isGroup) {
-        // 群聊：随机选一个成员回复
-        const responder = pickGroupResponder(chat);
-        addMessage(chat, {
-          role: 'assistant',
-          type: 'text',
-          content: reply,
-          senderId: responder.id,
-        });
-      } else {
-        addMessage(chat, {
-          role: 'assistant',
-          type: 'text',
-          content: reply,
-          senderId: chat.id,
-        });
-      }
-
+      if (!resp.ok) return [];
+      const json = await resp.json();
+      const models = (json.data || []).map(m => m.id).filter(Boolean);
+      _availableModels = models;
+      return models;
     } catch (e) {
-      typingEl?.remove();
-      addMessage(chat, {
-        role: 'assistant',
-        type: 'text',
-        content: `❌ AI 回复失败：${e.message}`,
-        senderId: chat.isGroup ? (chat.members?.[0]?.id) : chat.id,
-      });
-    } finally {
-      _isAiTyping = false;
+      console.warn('[ChatApp] 获取模型列表失败', e);
+      return [];
     }
   }
 
-  function buildAiMessages(chat) {
-    const msgs = chat.messages || [];
-    const kb = chat.knowledgeBase || [];
+  async function callAI(messages, onChunk, signal) {
+    const ai = MiniStore.get('ai');
+    if (!ai || !ai.baseUrl || !ai.apiKey) {
+      throw new Error('请先在设置中配置 AI API');
+    }
+    const model = ai.model || (_availableModels[0] || 'gpt-4o');
+    const base = ai.baseUrl.replace(/\/$/, '');
 
-    // 系统提示词
-    let systemContent = '';
-    if (chat.isGroup) {
-      const memberDescs = (chat.members || []).map(m =>
-        `- ${m.name}：${m.persona || '无特别设定'}`
-      ).join('\n');
-      systemContent = `你正在模拟一个群聊场景。群聊名称：${chat.name}。\n群成员：\n${memberDescs}\n请以其中一位成员的身份自然地回复用户。`;
-    } else {
-      systemContent = chat.systemPrompt || `你是${chat.name}，请保持角色扮演。`;
+    const resp = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ai.apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+      }),
+      signal,
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error(`API 错误 ${resp.status}: ${errText}`);
     }
 
-    if (kb.length) {
-      systemContent += `\n\n【知识书】\n${kb.map(k => `- ${k}`).join('\n')}`;
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') break;
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            fullText += delta;
+            onChunk(delta, fullText);
+          }
+        } catch (_) {}
+      }
+    }
+    return fullText;
+  }
+  /* ========== AI API 结束 ========== */
+
+  /* ========== 构建 AI 消息上下文 开始 ========== */
+  function buildMessages(convId, userText) {
+    const info = getConvInfo(convId);
+    if (!info) return [];
+
+    const conv = getConv(convId);
+    const myProfile = _data.myProfile;
+
+    // 获取当前会话对应的用户身份
+    let userIdentity = myProfile;
+    if (info.type === 'char' && info.data.userIdentity) {
+      userIdentity = Object.assign({}, myProfile, info.data.userIdentity);
     }
 
-    if (chat.summary) {
-      systemContent += `\n\n【之前对话摘要】\n${chat.summary}`;
+    // 构建系统提示
+    let systemParts = [];
+
+    if (info.type === 'char') {
+      const char = info.data;
+      systemParts.push(`你正在扮演角色：${char.name}`);
+      if (char.bio) systemParts.push(`角色设定：${char.bio}`);
+      if (char.systemPrompt) systemParts.push(`额外指令：${char.systemPrompt}`);
+      if (char.knowledgeBase) systemParts.push(`背景知识：\n${char.knowledgeBase}`);
+      systemParts.push(`\n对话对象（用户）：${userIdentity.name}`);
+      if (userIdentity.bio) systemParts.push(`用户设定：${userIdentity.bio}`);
+    } else if (info.type === 'group') {
+      const group = info.data;
+      const memberNames = (group.members || [])
+        .map(id => getCharById(id)?.name)
+        .filter(Boolean)
+        .join('、');
+      systemParts.push(`这是一个群聊，群名：${group.name}`);
+      systemParts.push(`群成员：${memberNames}`);
+      if (group.systemPrompt) systemParts.push(`群聊设定：${group.systemPrompt}`);
+      systemParts.push(`\n用户：${userIdentity.name}`);
+      if (userIdentity.bio) systemParts.push(`用户设定：${userIdentity.bio}`);
+      systemParts.push(`请根据群成员各自的性格轮流回复，格式：【角色名】：内容`);
     }
 
-    const history = msgs
-      .filter(m => m.type === 'text' && m.role !== 'system')
-      .slice(-20) // 最近20条
+    // 加入历史总结
+    if (conv.summaries && conv.summaries.length > 0) {
+      const lastSummary = conv.summaries[conv.summaries.length - 1];
+      systemParts.push(`\n【之前对话摘要】\n${lastSummary.content}`);
+    }
+
+    const systemPrompt = systemParts.join('\n');
+
+    // 构建消息历史（取最近50条，避免token过多）
+    const recentMessages = conv.messages.slice(-50);
+    const historyMessages = recentMessages
+      .filter(m => m.role !== 'system' && m.type === 'text')
       .map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.content,
       }));
 
+    // 特殊消息类型的文字描述
+    let finalUserContent = userText;
+
     return [
-      { role: 'system', content: systemContent },
-      ...history,
+      { role: 'system', content: systemPrompt },
+      ...historyMessages,
+      { role: 'user', content: finalUserContent },
     ];
   }
-
-  function pickGroupResponder(chat) {
-    const members = chat.members || [];
-    if (!members.length) return { id: chat.id, name: chat.name };
-    return members[Math.floor(Math.random() * members.length)];
-  }
-
-  function showTypingIndicator(chat) {
-    const $scroll = document.getElementById('chat-messages-scroll');
-    if (!$scroll) return null;
-
-    let avatarContent = chat.avatarUrl
-      ? `<img src="${escHtml(chat.avatarUrl)}" alt="">`
-      : escHtml(chat.avatar || '👤');
-
-    const el = document.createElement('div');
-    el.className = 'chat-msg-row';
-    el.id = 'chat-typing-indicator';
-    el.innerHTML = `
-      <div class="chat-msg-avatar">${avatarContent}</div>
-      <div class="chat-msg-content">
-        <div class="chat-bubble chat-bubble--other chat-bubble--typing">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-      </div>
-    `;
-    $scroll.appendChild(el);
-    scrollToBottom(true);
-    return el;
-  }
-  /* ========== AI 回复 结束 ========== */
+  /* ========== 构建 AI 消息上下文 结束 ========== */
 
   /* ========== 自动总结 开始 ========== */
-  async function checkAutoSummary(chat) {
-    const msgs = (chat.messages || []).filter(m => m.type === 'text' && m.role !== 'system');
-    const lastSummaryAt = chat.lastSummaryAt || 0;
-    const newMsgCount = msgs.filter(m => m.ts > lastSummaryAt).length;
+  async function checkAndSummarize(convId) {
+    const conv = getConv(convId);
+    const textMessages = conv.messages.filter(m => m.type === 'text');
 
-    if (newMsgCount < SUMMARY_EVERY) return;
+    // 计算自上次总结后的消息数
+    const lastSummaryMsgCount = conv.lastSummaryAt || 0;
+    const newMsgCount = textMessages.length - lastSummaryMsgCount;
 
-    const apiKey  = MiniStore.get('ai.apiKey');
-    const baseUrl = MiniStore.get('ai.baseUrl');
-    const model   = MiniStore.get('ai.model');
-    if (!apiKey || !baseUrl) return;
+    if (newMsgCount < AUTO_SUMMARY_EVERY) return;
+
+    // 取需要总结的消息
+    const toSummarize = textMessages.slice(lastSummaryMsgCount, lastSummaryMsgCount + AUTO_SUMMARY_EVERY);
+    const dialogText = toSummarize.map(m => {
+      const prefix = m.role === 'user' ? (_data.myProfile.name || '我') : (getConvInfo(convId)?.name || 'AI');
+      return `${prefix}：${m.content}`;
+    }).join('\n');
 
     try {
-      const recentMsgs = msgs.slice(-SUMMARY_EVERY);
-      const dialogue = recentMsgs.map(m =>
-        `${m.role === 'user' ? '用户' : chat.name}：${m.content}`
-      ).join('\n');
+      const summaryMessages = [
+        { role: 'system', content: _data.summaryPrompt },
+        { role: 'user', content: dialogText },
+      ];
 
-      const res = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'system',
-              content: '请用3-5句话简洁总结以下对话的核心内容，保留重要信息和情感基调，用中文输出。',
-            },
-            { role: 'user', content: dialogue },
-          ],
-        }),
+      MiniApp.showToast('正在自动总结对话... 📝');
+
+      let summaryText = '';
+      await callAI(summaryMessages, (delta, full) => { summaryText = full; }, null);
+
+      conv.summaries = conv.summaries || [];
+      conv.summaries.push({
+        id: genId(),
+        content: summaryText,
+        createdAt: Date.now(),
+        msgRange: [lastSummaryMsgCount, lastSummaryMsgCount + AUTO_SUMMARY_EVERY],
       });
-
-      if (!res.ok) return;
-      const data = await res.json();
-      const summary = data?.choices?.[0]?.message?.content?.trim();
-      if (!summary) return;
-
-      chat.summary = summary;
-      chat.lastSummaryAt = Date.now();
+      conv.lastSummaryAt = lastSummaryMsgCount + AUTO_SUMMARY_EVERY;
       saveData();
-
-      // 更新总结提示条
-      const $banner = document.getElementById('chat-summary-banner');
-      if ($banner) {
-        $banner.querySelector('.chat-summary-banner__text').textContent = summary.slice(0, 60) + '…';
-      } else {
-        // 插入提示条
-        const $header = document.querySelector('.chat-header');
-        if ($header) {
-          const banner = document.createElement('div');
-          banner.className = 'chat-summary-banner';
-          banner.id = 'chat-summary-banner';
-          banner.innerHTML = `
-            <span class="chat-summary-banner__icon">📝</span>
-            <span class="chat-summary-banner__text">${escHtml(summary.slice(0, 60))}…</span>
-            <span class="chat-summary-banner__arrow">›</span>
-          `;
-          $header.insertAdjacentElement('afterend', banner);
-        }
-      }
-
-      MiniApp.showToast('对话摘要已更新 📝');
+      MiniApp.showToast('对话已自动总结 ✅');
     } catch (e) {
-      // 总结失败静默处理
+      console.warn('[ChatApp] 自动总结失败', e);
     }
   }
   /* ========== 自动总结 结束 ========== */
 
-  /* ========== 贴纸面板 开始 ========== */
-  function renderStickerPanel($container, chat) {
-    const allPacks = [...STICKER_PACKS];
+  /* ========== 渲染主界面 开始 ========== */
+  function open() {
+    loadData();
+    const $appContent = document.getElementById('app-content');
+    $appContent.innerHTML = renderMainLayout();
+    bindMainEvents();
+    renderConvList();
+    // 异步拉取模型列表
+    fetchModels();
+  }
 
-    // 用户自定义贴纸包
-    if (_data.userStickers?.length) {
-      allPacks.push({
-        id: 'custom',
-        icon: '🖼️',
-        name: '自定义',
-        stickers: _data.userStickers,
-        isCustom: true,
-      });
-    }
-
-    const $tabs = $container.querySelector('#sticker-tabs');
-    const $grid = $container.querySelector('#sticker-grid');
-    if (!$tabs || !$grid) return;
-
-    $tabs.innerHTML = allPacks.map((pack, i) => `
-      <button class="chat-sticker-tab ${i === _stickerTab ? 'active' : ''}" data-pack="${i}" aria-label="${pack.name}">
-        ${pack.icon}
-      </button>
-    `).join('');
-
-    const currentPack = allPacks[_stickerTab] || allPacks[0];
-
-    if (currentPack.isCustom) {
-      $grid.innerHTML = `
-        ${currentPack.stickers.map((url, i) => `
-          <div class="chat-sticker-item" data-sticker-url="${escHtml(url)}" data-sticker-index="${i}">
-            <img src="${escHtml(url)}" alt="贴纸" loading="lazy">
+  function renderMainLayout() {
+    return `
+      <div class="chat-app" id="chat-app">
+        <!-- 会话列表视图 -->
+        <div class="chat-list-view" id="chat-list-view">
+          <div class="chat-nav">
+            <button class="chat-nav__back" id="chat-back-btn">
+              <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+                <path d="M9 1L1 9L9 17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <h1 class="chat-nav__title">聊天</h1>
+            <div class="chat-nav__actions">
+              <button class="chat-nav__btn" id="chat-new-btn" title="新建">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button class="chat-nav__btn" id="chat-settings-btn" title="聊天设置">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
-        `).join('')}
-        <div class="chat-sticker-item" id="sticker-add-custom" title="添加贴纸 URL">
-          <span style="font-size:28px;">＋</span>
+          <div class="chat-list" id="chat-list">
+            <!-- 动态生成 -->
+          </div>
+        </div>
+
+        <!-- 聊天窗口视图 -->
+        <div class="chat-window-view" id="chat-window-view">
+          <!-- 动态生成 -->
+        </div>
+
+        <!-- 角色管理视图 -->
+        <div class="chat-chars-view" id="chat-chars-view">
+          <!-- 动态生成 -->
+        </div>
+
+        <!-- 聊天设置视图 -->
+        <div class="chat-settings-view" id="chat-settings-view">
+          <!-- 动态生成 -->
+        </div>
+      </div>
+    `;
+  }
+  /* ========== 渲染主界面 结束 ========== */
+
+  /* ========== 渲染会话列表 开始 ========== */
+  function renderConvList() {
+    const $list = document.getElementById('chat-list');
+    if (!$list) return;
+
+    // 合并单聊和群聊
+    const items = [];
+
+    _data.characters.forEach(char => {
+      const convId = `char_${char.id}`;
+      const conv = _data.conversations[convId];
+      const lastMsg = conv?.messages?.[conv.messages.length - 1];
+      items.push({
+        convId,
+        name: char.name,
+        avatarUrl: char.avatarUrl,
+        lastMsg: lastMsg ? getLastMsgPreview(lastMsg) : '开始聊天吧',
+        lastTime: lastMsg?.timestamp || 0,
+        type: 'char',
+      });
+    });
+
+    _data.groups.forEach(group => {
+      const convId = `group_${group.id}`;
+      const conv = _data.conversations[convId];
+      const lastMsg = conv?.messages?.[conv.messages.length - 1];
+      items.push({
+        convId,
+        name: group.name,
+        avatarUrl: group.avatarUrl,
+        lastMsg: lastMsg ? getLastMsgPreview(lastMsg) : '开始聊天吧',
+        lastTime: lastMsg?.timestamp || 0,
+        type: 'group',
+        memberCount: group.members?.length || 0,
+      });
+    });
+
+    // 按最后消息时间排序
+    items.sort((a, b) => b.lastTime - a.lastTime);
+
+    if (items.length === 0) {
+      $list.innerHTML = `
+        <div class="chat-list__empty">
+          <div class="chat-list__empty-icon">💬</div>
+          <p>还没有聊天</p>
+          <p class="chat-list__empty-sub">点击右上角 ＋ 创建角色</p>
         </div>
       `;
+      return;
+    }
+
+    $list.innerHTML = items.map(item => `
+      <div class="chat-list-item" data-conv="${item.convId}">
+        <div class="chat-list-item__avatar">
+          ${item.avatarUrl
+            ? `<img src="${escapeHtml(item.avatarUrl)}" alt="${escapeHtml(item.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : ''}
+          <div class="chat-list-item__avatar-fallback" style="${item.avatarUrl ? 'display:none' : ''}">
+            ${item.type === 'group' ? '👥' : item.name.charAt(0)}
+          </div>
+        </div>
+        <div class="chat-list-item__info">
+          <div class="chat-list-item__top">
+            <span class="chat-list-item__name">${escapeHtml(item.name)}</span>
+            ${item.lastTime ? `<span class="chat-list-item__time">${formatTime(item.lastTime)}</span>` : ''}
+          </div>
+          <div class="chat-list-item__preview">${escapeHtml(item.lastMsg)}</div>
+        </div>
+      </div>
+    `).join('');
+
+    $list.querySelectorAll('.chat-list-item').forEach(el => {
+      el.addEventListener('click', () => openConversation(el.dataset.conv));
+    });
+  }
+
+  function getLastMsgPreview(msg) {
+    if (!msg) return '';
+    switch (msg.type) {
+      case 'text': return msg.content?.slice(0, 40) || '';
+      case 'image': return '[图片]';
+      case 'voice': return '[语音]';
+      case 'sticker': return '[表情包]';
+      case 'transfer': return '[转账]';
+      case 'gift': return '[礼物]';
+      case 'location': return '[位置]';
+      default: return msg.content?.slice(0, 40) || '';
+    }
+  }
+  /* ========== 渲染会话列表 结束 ========== */
+
+  /* ========== 打开会话 开始 ========== */
+  function openConversation(convId) {
+    _currentConvId = convId;
+    const info = getConvInfo(convId);
+    if (!info) return;
+
+    const $window = document.getElementById('chat-window-view');
+    const conv = getConv(convId);
+    const bg = _data.backgrounds[convId] || '';
+
+    $window.innerHTML = renderChatWindow(info, conv, bg);
+    $window.classList.add('open');
+
+    bindChatWindowEvents(convId);
+    scrollToBottom();
+  }
+
+  function renderChatWindow(info, conv, bg) {
+    const bgStyle = bg ? `style="background-image:url('${escapeHtml(bg)}')"` : '';
+    return `
+      <div class="chat-window" id="chat-window">
+        <!-- 顶部导航 -->
+        <div class="chat-window__nav">
+          <button class="chat-window__back" id="cw-back">
+            <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+              <path d="M9 1L1 9L9 17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="chat-window__title-area">
+            <div class="chat-window__avatar">
+              ${info.avatarUrl
+                ? `<img src="${escapeHtml(info.avatarUrl)}" alt="${escapeHtml(info.name)}">`
+                : `<div class="chat-window__avatar-fallback">${info.type === 'group' ? '👥' : info.name.charAt(0)}</div>`}
+            </div>
+            <div>
+              <div class="chat-window__name">${escapeHtml(info.name)}</div>
+              ${info.type === 'group' ? `<div class="chat-window__sub">${info.data.members?.length || 0} 人</div>` : ''}
+            </div>
+          </div>
+          <div class="chat-window__nav-actions">
+            <button class="chat-nav__btn" id="cw-info-btn" title="详情">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 消息区域 -->
+        <div class="chat-messages" id="chat-messages" ${bgStyle}>
+          ${renderMessages(conv.messages, info)}
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="chat-input-area" id="chat-input-area">
+          <!-- 特殊功能按钮行 -->
+          <div class="chat-input-extras" id="chat-input-extras">
+            <button class="chat-extra-btn" data-action="image" title="图片">🖼️</button>
+            <button class="chat-extra-btn" data-action="voice" title="语音">🎤</button>
+            <button class="chat-extra-btn" data-action="sticker" title="表情包">😄</button>
+            <button class="chat-extra-btn" data-action="transfer" title="转账">💸</button>
+            <button class="chat-extra-btn" data-action="gift" title="礼物">🎁</button>
+            <button class="chat-extra-btn" data-action="location" title="位置">📍</button>
+          </div>
+          <!-- 输入行 -->
+          <div class="chat-input-row">
+            <button class="chat-input-more" id="chat-input-more-btn">＋</button>
+            <textarea
+              class="chat-input-box"
+              id="chat-input-box"
+              placeholder="发消息..."
+              rows="1"
+              maxlength="2000"
+            ></textarea>
+            <button class="chat-send-btn" id="chat-send-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2L11 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 表情包面板 -->
+        <div class="chat-sticker-panel" id="chat-sticker-panel">
+          ${renderStickerPanel()}
+        </div>
+
+        <!-- 会话详情面板 -->
+        <div class="chat-info-panel" id="chat-info-panel">
+          ${renderInfoPanel(info)}
+        </div>
+      </div>
+    `;
+  }
+  /* ========== 打开会话 结束 ========== */
+
+  /* ========== 渲染消息 开始 ========== */
+  function renderMessages(messages, info) {
+    if (!messages || messages.length === 0) {
+      return `<div class="chat-messages__empty">开始你们的对话吧 ✨</div>`;
+    }
+
+    return messages.map((msg, idx) => renderMessage(msg, info, idx)).join('');
+  }
+
+  function renderMessage(msg, info, idx) {
+    const isUser = msg.role === 'user';
+    const myProfile = _data.myProfile;
+
+    // 发送者信息
+    let senderName, senderAvatar;
+    if (isUser) {
+      // 用户身份：优先用当前会话的userIdentity
+      const convInfo = getConvInfo(_currentConvId);
+      const userIdentity = (convInfo?.type === 'char' && convInfo.data.userIdentity)
+        ? Object.assign({}, myProfile, convInfo.data.userIdentity)
+        : myProfile;
+      senderName = userIdentity.name || '我';
+      senderAvatar = userIdentity.avatarUrl || myProfile.avatarUrl || '';
     } else {
-      $grid.innerHTML = currentPack.stickers.map(emoji => `
-        <div class="chat-sticker-item" data-sticker="${escHtml(emoji)}">${emoji}</div>
+      // 群聊时解析角色名
+      if (info.type === 'group' && msg.senderName) {
+        senderName = msg.senderName;
+        const char = _data.characters.find(c => c.name === msg.senderName);
+        senderAvatar = char?.avatarUrl || '';
+      } else {
+        senderName = info.name;
+        senderAvatar = info.avatarUrl || '';
+      }
+    }
+
+    const avatarHtml = senderAvatar
+      ? `<img src="${escapeHtml(senderAvatar)}" alt="${escapeHtml(senderName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : '';
+    const fallbackHtml = `<div class="msg-avatar__fallback" style="${senderAvatar ? 'display:none' : ''}">${senderName.charAt(0)}</div>`;
+
+    const bubbleContent = renderBubbleContent(msg);
+
+    return `
+      <div class="msg-row ${isUser ? 'msg-row--user' : 'msg-row--other'}" data-msg-idx="${idx}">
+        ${!isUser ? `
+          <div class="msg-avatar">
+            ${avatarHtml}${fallbackHtml}
+          </div>
+        ` : ''}
+        <div class="msg-body">
+          ${!isUser && info.type === 'group' ? `<div class="msg-sender-name">${escapeHtml(senderName)}</div>` : ''}
+          <div class="msg-bubble msg-bubble--${msg.type || 'text'}">
+            ${bubbleContent}
+          </div>
+          <div class="msg-time">${formatTime(msg.timestamp)}</div>
+        </div>
+        ${isUser ? `
+          <div class="msg-avatar">
+            ${avatarHtml}${fallbackHtml}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  function renderBubbleContent(msg) {
+    switch (msg.type) {
+      case 'text':
+                return `<p class="msg-text">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</p>`;
+
+      case 'image':
+        return `
+          <div class="msg-image-card">
+            <div class="msg-image-card__icon">🖼️</div>
+            <div class="msg-image-card__info">
+              <div class="msg-image-card__title">图片</div>
+              <div class="msg-image-card__desc">${escapeHtml(msg.content || '')}</div>
+            </div>
+          </div>`;
+
+      case 'voice':
+        return `
+          <div class="msg-voice-card">
+            <div class="msg-voice-card__icon">🎤</div>
+            <div class="msg-voice-card__wave">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="msg-voice-card__duration">${msg.duration || '0'}"</div>
+          </div>`;
+
+      case 'sticker':
+        return `
+          <div class="msg-sticker">
+            <img src="${escapeHtml(msg.content)}" alt="表情包" onerror="this.parentElement.innerHTML='😄'">
+          </div>`;
+
+      case 'transfer':
+        return `
+          <div class="msg-transfer-card">
+            <div class="msg-transfer-card__header">
+              <span class="msg-transfer-card__icon">💸</span>
+              <span class="msg-transfer-card__label">转账</span>
+            </div>
+            <div class="msg-transfer-card__amount">¥${escapeHtml(String(msg.amount || '0'))}</div>
+            ${msg.note ? `<div class="msg-transfer-card__note">${escapeHtml(msg.note)}</div>` : ''}
+            <div class="msg-transfer-card__footer">微信转账</div>
+          </div>`;
+
+      case 'gift':
+        return `
+          <div class="msg-gift-card">
+            <div class="msg-gift-card__emoji">${escapeHtml(msg.giftEmoji || '🎁')}</div>
+            <div class="msg-gift-card__info">
+              <div class="msg-gift-card__name">${escapeHtml(msg.giftName || '礼物')}</div>
+              ${msg.note ? `<div class="msg-gift-card__note">${escapeHtml(msg.note)}</div>` : ''}
+            </div>
+          </div>`;
+
+      case 'location':
+        return `
+          <div class="msg-location-card">
+            <div class="msg-location-card__map">
+              <div class="msg-location-card__pin">📍</div>
+            </div>
+            <div class="msg-location-card__info">
+              <div class="msg-location-card__name">${escapeHtml(msg.locationName || '位置')}</div>
+              <div class="msg-location-card__addr">${escapeHtml(msg.address || '')}</div>
+            </div>
+          </div>`;
+
+      default:
+        return `<p class="msg-text">${escapeHtml(msg.content || '')}</p>`;
+    }
+  }
+  /* ========== 渲染消息 结束 ========== */
+
+  /* ========== 渲染表情包面板 开始 ========== */
+  function renderStickerPanel() {
+    if (_data.stickers.length === 0) {
+      return `
+        <div class="sticker-panel__empty">
+          <p>还没有表情包</p>
+          <button class="sticker-panel__add-btn" id="sticker-add-btn">＋ 添加表情包</button>
+        </div>`;
+    }
+    return `
+      <div class="sticker-panel__grid">
+        ${_data.stickers.map(s => `
+          <div class="sticker-item" data-url="${escapeHtml(s.url)}" title="${escapeHtml(s.name || '')}">
+            <img src="${escapeHtml(s.url)}" alt="${escapeHtml(s.name || '')}" onerror="this.parentElement.style.display='none'">
+          </div>
+        `).join('')}
+      </div>
+      <div class="sticker-panel__footer">
+        <button class="sticker-panel__add-btn" id="sticker-add-btn">＋ 添加表情包</button>
+      </div>`;
+  }
+  /* ========== 渲染表情包面板 结束 ========== */
+
+  /* ========== 渲染会话详情面板 开始 ========== */
+  function renderInfoPanel(info) {
+    if (info.type === 'char') {
+      const char = info.data;
+      const userIdentity = char.userIdentity || {};
+      return `
+        <div class="info-panel">
+          <div class="info-panel__header">
+            <button class="info-panel__close" id="info-panel-close">✕</button>
+            <h3>会话详情</h3>
+          </div>
+          <div class="info-panel__body">
+            <!-- 角色信息 -->
+            <div class="info-section">
+              <div class="info-section__title">角色</div>
+              <div class="info-avatar-row">
+                <div class="info-avatar">
+                  ${char.avatarUrl ? `<img src="${escapeHtml(char.avatarUrl)}" alt="">` : `<div class="info-avatar__fallback">${char.name.charAt(0)}</div>`}
+                </div>
+                <div class="info-avatar-name">${escapeHtml(char.name)}</div>
+              </div>
+            </div>
+
+            <!-- 我的身份 -->
+            <div class="info-section">
+              <div class="info-section__title">我的身份（此角色专属）</div>
+              <div class="info-field">
+                <label>昵称</label>
+                <input type="text" class="info-input" id="ui-name" value="${escapeHtml(userIdentity.name || '')}" placeholder="留空则使用全局昵称">
+              </div>
+              <div class="info-field">
+                <label>头像 URL</label>
+                <input type="text" class="info-input" id="ui-avatar" value="${escapeHtml(userIdentity.avatarUrl || '')}" placeholder="留空则使用全局头像">
+              </div>
+              <div class="info-field">
+                <label>人设</label>
+                <textarea class="info-input info-textarea" id="ui-bio" placeholder="描述你在这段关系中的身份...">${escapeHtml(userIdentity.bio || '')}</textarea>
+              </div>
+            </div>
+
+            <!-- 聊天背景 -->
+            <div class="info-section">
+              <div class="info-section__title">聊天背景</div>
+              <div class="info-field">
+                <label>背景图 URL</label>
+                <input type="text" class="info-input" id="chat-bg-url" value="${escapeHtml(_data.backgrounds[_currentConvId] || '')}" placeholder="输入图片 URL...">
+              </div>
+            </div>
+
+            <!-- 对话总结 -->
+            <div class="info-section">
+              <div class="info-section__title">对话总结</div>
+              <button class="info-btn" id="view-summaries-btn">查看历史总结</button>
+              <button class="info-btn" id="edit-summary-prompt-btn">编辑总结 Prompt</button>
+              <button class="info-btn info-btn--danger" id="manual-summary-btn">立即总结</button>
+            </div>
+
+            <!-- 知识库 -->
+            <div class="info-section">
+              <div class="info-section__title">知识库</div>
+              <textarea class="info-input info-textarea" id="char-knowledge" rows="5" placeholder="输入角色的背景知识、世界观设定...">${escapeHtml(char.knowledgeBase || '')}</textarea>
+            </div>
+
+            <!-- 系统提示词 -->
+            <div class="info-section">
+              <div class="info-section__title">系统提示词</div>
+              <textarea class="info-input info-textarea" id="char-system-prompt" rows="4" placeholder="额外的角色扮演指令...">${escapeHtml(char.systemPrompt || '')}</textarea>
+            </div>
+
+            <button class="info-btn info-btn--primary" id="info-save-btn">保存设置</button>
+            <button class="info-btn info-btn--danger" id="delete-char-btn">删除角色</button>
+          </div>
+        </div>`;
+    } else {
+      // 群聊详情
+      const group = info.data;
+      const userIdentity = group.userIdentity || {};
+      return `
+        <div class="info-panel">
+          <div class="info-panel__header">
+            <button class="info-panel__close" id="info-panel-close">✕</button>
+            <h3>群聊详情</h3>
+          </div>
+          <div class="info-panel__body">
+            <div class="info-section">
+              <div class="info-section__title">群成员</div>
+              <div class="info-members">
+                ${(group.members || []).map(id => {
+                  const char = getCharById(id);
+                  if (!char) return '';
+                  return `<div class="info-member">
+                    ${char.avatarUrl ? `<img src="${escapeHtml(char.avatarUrl)}" alt="">` : `<div class="info-member__fallback">${char.name.charAt(0)}</div>`}
+                    <span>${escapeHtml(char.name)}</span>
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- 我的身份 -->
+            <div class="info-section">
+              <div class="info-section__title">我的身份（此群专属）</div>
+              <div class="info-field">
+                <label>昵称</label>
+                <input type="text" class="info-input" id="ui-name" value="${escapeHtml(userIdentity.name || '')}" placeholder="留空则使用全局昵称">
+              </div>
+              <div class="info-field">
+                <label>头像 URL</label>
+                <input type="text" class="info-input" id="ui-avatar" value="${escapeHtml(userIdentity.avatarUrl || '')}" placeholder="留空则使用全局头像">
+              </div>
+              <div class="info-field">
+                <label>人设</label>
+                <textarea class="info-input info-textarea" id="ui-bio" placeholder="描述你在群里的身份...">${escapeHtml(userIdentity.bio || '')}</textarea>
+              </div>
+            </div>
+
+            <!-- 聊天背景 -->
+            <div class="info-section">
+              <div class="info-section__title">聊天背景</div>
+              <div class="info-field">
+                <label>背景图 URL</label>
+                <input type="text" class="info-input" id="chat-bg-url" value="${escapeHtml(_data.backgrounds[_currentConvId] || '')}" placeholder="输入图片 URL...">
+              </div>
+            </div>
+
+            <!-- 对话总结 -->
+            <div class="info-section">
+              <div class="info-section__title">对话总结</div>
+              <button class="info-btn" id="view-summaries-btn">查看历史总结</button>
+              <button class="info-btn" id="edit-summary-prompt-btn">编辑总结 Prompt</button>
+              <button class="info-btn info-btn--danger" id="manual-summary-btn">立即总结</button>
+            </div>
+
+            <!-- 群聊设定 -->
+            <div class="info-section">
+              <div class="info-section__title">群聊设定</div>
+              <textarea class="info-input info-textarea" id="char-system-prompt" rows="4" placeholder="群聊的背景设定...">${escapeHtml(group.systemPrompt || '')}</textarea>
+            </div>
+
+            <button class="info-btn info-btn--primary" id="info-save-btn">保存设置</button>
+            <button class="info-btn info-btn--danger" id="delete-char-btn">删除群聊</button>
+          </div>
+        </div>`;
+    }
+  }
+  /* ========== 渲染会话详情面板 结束 ========== */
+
+  /* ========== 绑定主界面事件 开始 ========== */
+  function bindMainEvents() {
+    document.getElementById('chat-back-btn')?.addEventListener('click', () => {
+      MiniApp.closeApp();
+    });
+
+    document.getElementById('chat-new-btn')?.addEventListener('click', () => {
+      openCharsView();
+    });
+
+    document.getElementById('chat-settings-btn')?.addEventListener('click', () => {
+      openChatSettingsView();
+    });
+  }
+  /* ========== 绑定主界面事件 结束 ========== */
+
+  /* ========== 绑定聊天窗口事件 开始 ========== */
+  function bindChatWindowEvents(convId) {
+    const $window = document.getElementById('chat-window-view');
+
+    // 返回按钮
+    document.getElementById('cw-back')?.addEventListener('click', () => {
+      if (_streamController) { _streamController.abort(); _streamController = null; }
+      $window.classList.remove('open');
+      _currentConvId = null;
+      renderConvList();
+    });
+
+    // 详情按钮
+    document.getElementById('cw-info-btn')?.addEventListener('click', () => {
+      const $panel = document.getElementById('chat-info-panel');
+      $panel.classList.toggle('open');
+    });
+
+    // 关闭详情面板
+    document.getElementById('info-panel-close')?.addEventListener('click', () => {
+      document.getElementById('chat-info-panel')?.classList.remove('open');
+    });
+
+    // 发送按钮
+    document.getElementById('chat-send-btn')?.addEventListener('click', () => sendTextMessage(convId));
+
+    // 输入框回车发送（Shift+Enter换行）
+    const $input = document.getElementById('chat-input-box');
+    $input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendTextMessage(convId);
+      }
+    });
+
+    // 输入框自动高度
+    $input?.addEventListener('input', () => {
+      $input.style.height = 'auto';
+      $input.style.height = Math.min($input.scrollHeight, 120) + 'px';
+    });
+
+    // 更多按钮（展开/收起特殊功能）
+    document.getElementById('chat-input-more-btn')?.addEventListener('click', () => {
+      const $extras = document.getElementById('chat-input-extras');
+      $extras.classList.toggle('open');
+      document.getElementById('chat-sticker-panel')?.classList.remove('open');
+    });
+
+    // 特殊功能按钮
+    document.getElementById('chat-input-extras')?.querySelectorAll('.chat-extra-btn').forEach(btn => {
+      btn.addEventListener('click', () => handleExtraAction(btn.dataset.action, convId));
+    });
+
+    // 表情包面板
+    bindStickerPanelEvents(convId);
+
+    // 详情面板保存
+    bindInfoPanelEvents(convId);
+  }
+  /* ========== 绑定聊天窗口事件 结束 ========== */
+
+  /* ========== 发送文字消息 开始 ========== */
+  async function sendTextMessage(convId) {
+    const $input = document.getElementById('chat-input-box');
+    const text = $input?.value.trim();
+    if (!text) return;
+
+    $input.value = '';
+    $input.style.height = 'auto';
+
+    // 添加用户消息
+    addMessage(convId, { role: 'user', type: 'text', content: text, timestamp: Date.now() });
+    renderMessagesInWindow(convId);
+    scrollToBottom();
+
+    // 禁用发送按钮
+    const $sendBtn = document.getElementById('chat-send-btn');
+    if ($sendBtn) $sendBtn.disabled = true;
+
+    // 添加 AI 正在输入占位
+    const thinkingId = 'thinking_' + Date.now();
+    appendThinkingBubble(thinkingId);
+
+    try {
+      const messages = buildMessages(convId, text);
+      _streamController = new AbortController();
+
+      let aiText = '';
+      const info = getConvInfo(convId);
+
+      await callAI(messages, (delta, full) => {
+        aiText = full;
+        updateThinkingBubble(thinkingId, full, info);
+      }, _streamController.signal);
+
+      // 移除占位，添加正式消息
+      removeThinkingBubble(thinkingId);
+
+      // 群聊解析多角色
+      if (info.type === 'group') {
+        parseGroupReply(convId, aiText, info);
+      } else {
+        addMessage(convId, { role: 'assistant', type: 'text', content: aiText, timestamp: Date.now() });
+      }
+
+      renderMessagesInWindow(convId);
+      scrollToBottom();
+      saveData();
+
+      // 检查是否需要自动总结
+      checkAndSummarize(convId);
+
+    } catch (e) {
+      removeThinkingBubble(thinkingId);
+      if (e.name !== 'AbortError') {
+        MiniApp.showToast('发送失败：' + e.message);
+        console.error('[ChatApp] AI 调用失败', e);
+      }
+    } finally {
+      _streamController = null;
+      if ($sendBtn) $sendBtn.disabled = false;
+    }
+  }
+  /* ========== 发送文字消息 结束 ========== */
+
+  /* ========== 群聊多角色解析 开始 ========== */
+  function parseGroupReply(convId, text, info) {
+    // 格式：【角色名】：内容
+    const lines = text.split('\n');
+    let currentSender = null;
+    let currentLines = [];
+
+    const flush = () => {
+      if (currentSender && currentLines.length > 0) {
+        addMessage(convId, {
+          role: 'assistant',
+          type: 'text',
+          content: currentLines.join('\n').trim(),
+          senderName: currentSender,
+          timestamp: Date.now(),
+        });
+      }
+      currentLines = [];
+    };
+
+    for (const line of lines) {
+      const match = line.match(/^【(.+?)】[：:]\s*(.*)/);
+      if (match) {
+        flush();
+        currentSender = match[1];
+        if (match[2]) currentLines.push(match[2]);
+      } else if (currentSender) {
+        currentLines.push(line);
+      }
+    }
+    flush();
+
+    // 如果没有解析到格式，作为整体消息
+    if (_data.conversations[convId]?.messages.slice(-1)[0]?.role !== 'assistant') {
+      addMessage(convId, { role: 'assistant', type: 'text', content: text, timestamp: Date.now() });
+    }
+  }
+  /* ========== 群聊多角色解析 结束 ========== */
+
+  /* ========== 流式输出气泡 开始 ========== */
+  function appendThinkingBubble(id) {
+    const $msgs = document.getElementById('chat-messages');
+    if (!$msgs) return;
+    const info = getConvInfo(_currentConvId);
+    if (!info) return;
+
+    const avatarHtml = info.avatarUrl
+      ? `<img src="${escapeHtml(info.avatarUrl)}" alt="">`
+      : `<div class="msg-avatar__fallback">${info.name.charAt(0)}</div>`;
+
+    const div = document.createElement('div');
+    div.className = 'msg-row msg-row--other msg-row--thinking';
+    div.id = id;
+    div.innerHTML = `
+      <div class="msg-avatar">${avatarHtml}</div>
+      <div class="msg-body">
+        <div class="msg-bubble msg-bubble--text msg-bubble--streaming">
+          <p class="msg-text"><span class="typing-dots"><span>.</span><span>.</span><span>.</span></span></p>
+        </div>
+      </div>`;
+    $msgs.appendChild(div);
+    scrollToBottom();
+  }
+
+  function updateThinkingBubble(id, text, info) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const bubble = el.querySelector('.msg-bubble');
+    if (bubble) {
+      bubble.innerHTML = `<p class="msg-text">${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
+    }
+    scrollToBottom();
+  }
+
+  function removeThinkingBubble(id) {
+    document.getElementById(id)?.remove();
+  }
+  /* ========== 流式输出气泡 结束 ========== */
+
+  /* ========== 特殊消息处理 开始 ========== */
+  function handleExtraAction(action, convId) {
+    const info = getConvInfo(convId);
+    document.getElementById('chat-input-extras')?.classList.remove('open');
+
+    switch (action) {
+      case 'image':
+        showModal('发送图片', `
+          <div class="modal-field">
+            <label>图片描述</label>
+            <input type="text" id="modal-image-desc" class="modal-input" placeholder="描述图片内容...">
+          </div>
+        `, () => {
+          const desc = document.getElementById('modal-image-desc')?.value.trim();
+          if (!desc) return;
+          sendSpecialMessage(convId, {
+            role: 'user', type: 'image',
+            content: desc,
+            aiContent: `[用户发送了一张图片：${desc}]`,
+            timestamp: Date.now(),
+          });
+        });
+        break;
+
+      case 'voice':
+        showModal('发送语音', `
+          <div class="modal-field">
+            <label>语音内容描述</label>
+            <input type="text" id="modal-voice-desc" class="modal-input" placeholder="说了什么...">
+          </div>
+          <div class="modal-field">
+            <label>时长（秒）</label>
+            <input type="number" id="modal-voice-dur" class="modal-input" value="5" min="1" max="60">
+          </div>
+        `, () => {
+          const desc = document.getElementById('modal-voice-desc')?.value.trim();
+          const dur = document.getElementById('modal-voice-dur')?.value || '5';
+          if (!desc) return;
+          sendSpecialMessage(convId, {
+            role: 'user', type: 'voice',
+            content: desc,
+            duration: dur,
+            aiContent: `[用户发送了一条${dur}秒的语音：${desc}]`,
+            timestamp: Date.now(),
+          });
+        });
+        break;
+
+      case 'sticker':
+        document.getElementById('chat-sticker-panel')?.classList.toggle('open');
+        break;
+
+      case 'transfer':
+        showModal('转账', `
+          <div class="modal-field">
+            <label>金额（元）</label>
+            <input type="number" id="modal-transfer-amount" class="modal-input" placeholder="0.00" min="0.01" step="0.01">
+          </div>
+          <div class="modal-field">
+            <label>备注（可选）</label>
+            <input type="text" id="modal-transfer-note" class="modal-input" placeholder="转账备注...">
+          </div>
+        `, () => {
+          const amount = document.getElementById('modal-transfer-amount')?.value;
+          const note = document.getElementById('modal-transfer-note')?.value.trim();
+          if (!amount) return;
+          sendSpecialMessage(convId, {
+            role: 'user', type: 'transfer',
+            amount,
+            note,
+            aiContent: `[用户向你转账了 ¥${amount}${note ? `，备注：${note}` : ''}]`,
+            timestamp: Date.now(),
+          });
+        });
+        break;
+
+      case 'gift':
+        showModal('送礼物', `
+          <div class="modal-field">
+            <label>礼物名称</label>
+            <input type="text" id="modal-gift-name" class="modal-input" placeholder="玫瑰花、蛋糕...">
+          </div>
+          <div class="modal-field">
+            <label>礼物 Emoji</label>
+            <input type="text" id="modal-gift-emoji" class="modal-input" value="🎁" placeholder="🎁">
+          </div>
+          <div class="modal-field">
+            <label>留言（可选）</label>
+            <input type="text" id="modal-gift-note" class="modal-input" placeholder="送你的...">
+          </div>
+        `, () => {
+          const name = document.getElementById('modal-gift-name')?.value.trim();
+          const emoji = document.getElementById('modal-gift-emoji')?.value.trim() || '🎁';
+          const note = document.getElementById('modal-gift-note')?.value.trim();
+          if (!name) return;
+          sendSpecialMessage(convId, {
+            role: 'user', type: 'gift',
+            giftName: name,
+            giftEmoji: emoji,
+            note,
+            aiContent: `[用户送给你一份礼物：${emoji} ${name}${note ? `，留言：${note}` : ''}]`,
+            timestamp: Date.now(),
+          });
+        });
+        break;
+
+      case 'location':
+        showModal('发送位置', `
+          <div class="modal-field">
+            <label>位置名称</label>
+            <input type="text" id="modal-loc-name" class="modal-input" placeholder="咖啡厅、家...">
+          </div>
+          <div class="modal-field">
+            <label>详细地址（可选）</label>
+            <input type="text" id="modal-loc-addr" class="modal-input" placeholder="具体地址...">
+          </div>
+        `, () => {
+          const name = document.getElementById('modal-loc-name')?.value.trim();
+          const addr = document.getElementById('modal-loc-addr')?.value.trim();
+          if (!name) return;
+          sendSpecialMessage(convId, {
+            role: 'user', type: 'location',
+            locationName: name,
+            address: addr,
+            aiContent: `[用户分享了位置：${name}${addr ? `（${addr}）` : ''}]`,
+            timestamp: Date.now(),
+          });
+        });
+        break;
+    }
+  }
+
+  async function sendSpecialMessage(convId, msgData) {
+    addMessage(convId, msgData);
+    renderMessagesInWindow(convId);
+    scrollToBottom();
+
+    // 构建AI上下文，用aiContent让AI理解
+    const aiMessages = buildMessages(convId, msgData.aiContent || msgData.content || '');
+    const $sendBtn = document.getElementById('chat-send-btn');
+    if ($sendBtn) $sendBtn.disabled = true;
+
+    const thinkingId = 'thinking_' + Date.now();
+    appendThinkingBubble(thinkingId);
+
+    try {
+      _streamController = new AbortController();
+      const info = getConvInfo(convId);
+      let aiText = '';
+
+      await callAI(aiMessages, (delta, full) => {
+        aiText = full;
+        updateThinkingBubble(thinkingId, full, info);
+      }, _streamController.signal);
+
+      removeThinkingBubble(thinkingId);
+
+      if (info.type === 'group') {
+        parseGroupReply(convId, aiText, info);
+      } else {
+        addMessage(convId, { role: 'assistant', type: 'text', content: aiText, timestamp: Date.now() });
+      }
+
+      renderMessagesInWindow(convId);
+      scrollToBottom();
+      saveData();
+      checkAndSummarize(convId);
+    } catch (e) {
+      removeThinkingBubble(thinkingId);
+      if (e.name !== 'AbortError') {
+        MiniApp.showToast('发送失败：' + e.message);
+      }
+    } finally {
+      _streamController = null;
+      if ($sendBtn) $sendBtn.disabled = false;
+    }
+  }
+  /* ========== 特殊消息处理 结束 ========== */
+
+  /* ========== 消息管理 开始 ========== */
+  function addMessage(convId, msg) {
+    const conv = getConv(convId);
+    conv.messages.push(msg);
+    saveData();
+  }
+
+  function renderMessagesInWindow(convId) {
+    const $msgs = document.getElementById('chat-messages');
+    if (!$msgs) return;
+    const conv = getConv(convId);
+    const info = getConvInfo(convId);
+    if (!info) return;
+    $msgs.innerHTML = renderMessages(conv.messages, info);
+  }
+
+  function scrollToBottom() {
+    const $msgs = document.getElementById('chat-messages');
+    if ($msgs) $msgs.scrollTop = $msgs.scrollHeight;
+  }
+  /* ========== 消息管理 结束 ========== */
+
+  /* ========== 表情包面板事件 开始 ========== */
+  function bindStickerPanelEvents(convId) {
+    const $panel = document.getElementById('chat-sticker-panel');
+    if (!$panel) return;
+
+    $panel.addEventListener('click', (e) => {
+      const item = e.target.closest('.sticker-item');
+      if (item) {
+        const url = item.dataset.url;
+        $panel.classList.remove('open');
+        sendSpecialMessage(convId, {
+          role: 'user', type: 'sticker',
+          content: url,
+          aiContent: '[用户发送了一个表情包]',
+          timestamp: Date.now(),
+        });
+      }
+
+      if (e.target.id === 'sticker-add-btn') {
+        showModal('添加表情包', `
+          <div class="modal-field">
+            <label>图片 URL</label>
+            <input type="text" id="modal-sticker-url" class="modal-input" placeholder="https://...">
+          </div>
+          <div class="modal-field">
+            <label>名称（可选）</label>
+                        <input type="text" id="modal-sticker-name" class="modal-input" placeholder="表情包名称...">
+          </div>
+        `, () => {
+          const url = document.getElementById('modal-sticker-url')?.value.trim();
+          const name = document.getElementById('modal-sticker-name')?.value.trim();
+          if (!url) return;
+          _data.stickers.push({ id: genId(), url, name: name || '' });
+          saveData();
+          // 刷新表情包面板
+          if ($panel) $panel.innerHTML = renderStickerPanel();
+          bindStickerPanelEvents(convId);
+          MiniApp.showToast('表情包已添加 😄');
+        });
+      }
+    });
+  }
+  /* ========== 表情包面板事件 结束 ========== */
+
+  /* ========== 详情面板事件 开始 ========== */
+  function bindInfoPanelEvents(convId) {
+    const info = getConvInfo(convId);
+    if (!info) return;
+
+    // 保存按钮
+    document.getElementById('info-save-btn')?.addEventListener('click', () => {
+      const name = document.getElementById('ui-name')?.value.trim();
+      const avatarUrl = document.getElementById('ui-avatar')?.value.trim();
+      const bio = document.getElementById('ui-bio')?.value.trim();
+      const bgUrl = document.getElementById('chat-bg-url')?.value.trim();
+      const systemPrompt = document.getElementById('char-system-prompt')?.value.trim();
+      const knowledge = document.getElementById('char-knowledge')?.value.trim();
+
+      // 保存用户身份
+      const userIdentity = { name, avatarUrl, bio };
+
+      if (info.type === 'char') {
+        const char = getCharById(info.data.id);
+        if (char) {
+          char.userIdentity = userIdentity;
+          char.systemPrompt = systemPrompt || '';
+          char.knowledgeBase = knowledge || '';
+        }
+      } else {
+        const group = getGroupById(info.data.id);
+        if (group) {
+          group.userIdentity = userIdentity;
+          group.systemPrompt = systemPrompt || '';
+        }
+      }
+
+      // 保存聊天背景
+      if (bgUrl) {
+        _data.backgrounds[convId] = bgUrl;
+      } else {
+        delete _data.backgrounds[convId];
+      }
+
+      saveData();
+
+      // 刷新聊天背景
+      const $msgs = document.getElementById('chat-messages');
+      if ($msgs) {
+        $msgs.style.backgroundImage = bgUrl ? `url('${bgUrl}')` : '';
+      }
+
+      document.getElementById('chat-info-panel')?.classList.remove('open');
+      MiniApp.showToast('设置已保存 ✅');
+    });
+
+    // 查看历史总结
+    document.getElementById('view-summaries-btn')?.addEventListener('click', () => {
+      showSummariesModal(convId);
+    });
+
+    // 编辑总结 Prompt
+    document.getElementById('edit-summary-prompt-btn')?.addEventListener('click', () => {
+      showModal('编辑总结 Prompt', `
+        <div class="modal-field">
+          <label>总结提示词</label>
+          <textarea id="modal-summary-prompt" class="modal-input modal-textarea" rows="6">${escapeHtml(_data.summaryPrompt)}</textarea>
+        </div>
+      `, () => {
+        const prompt = document.getElementById('modal-summary-prompt')?.value.trim();
+        if (prompt) {
+          _data.summaryPrompt = prompt;
+          saveData();
+          MiniApp.showToast('总结 Prompt 已更新 ✅');
+        }
+      });
+    });
+
+    // 立即总结
+    document.getElementById('manual-summary-btn')?.addEventListener('click', async () => {
+      document.getElementById('chat-info-panel')?.classList.remove('open');
+      await forceSummarize(convId);
+    });
+
+    // 删除角色/群聊
+    document.getElementById('delete-char-btn')?.addEventListener('click', () => {
+      const typeName = info.type === 'char' ? '角色' : '群聊';
+      showModal(`删除${typeName}`, `
+        <p style="color:var(--text-secondary);text-align:center;padding:8px 0;">
+          确定要删除「${escapeHtml(info.name)}」吗？<br>
+          <span style="color:#ff3b30;font-size:13px;">此操作不可撤销，聊天记录将一并删除。</span>
+        </p>
+      `, () => {
+        if (info.type === 'char') {
+          _data.characters = _data.characters.filter(c => c.id !== info.data.id);
+        } else {
+          _data.groups = _data.groups.filter(g => g.id !== info.data.id);
+        }
+        delete _data.conversations[convId];
+        delete _data.backgrounds[convId];
+        saveData();
+
+        document.getElementById('chat-window-view')?.classList.remove('open');
+        _currentConvId = null;
+        renderConvList();
+        MiniApp.showToast(`${typeName}已删除`);
+      }, { confirmText: '删除', confirmDanger: true });
+    });
+  }
+  /* ========== 详情面板事件 结束 ========== */
+
+  /* ========== 总结相关 开始 ========== */
+  async function forceSummarize(convId) {
+    const conv = getConv(convId);
+    const textMessages = conv.messages.filter(m => m.type === 'text');
+    if (textMessages.length === 0) {
+      MiniApp.showToast('没有可总结的消息');
+      return;
+    }
+
+    const dialogText = textMessages.map(m => {
+      const prefix = m.role === 'user' ? (_data.myProfile.name || '我') : (getConvInfo(convId)?.name || 'AI');
+      return `${prefix}：${m.content}`;
+    }).join('\n');
+
+    try {
+      MiniApp.showToast('正在总结... 📝');
+      const summaryMessages = [
+        { role: 'system', content: _data.summaryPrompt },
+        { role: 'user', content: dialogText },
+      ];
+      let summaryText = '';
+      await callAI(summaryMessages, (delta, full) => { summaryText = full; }, null);
+
+      conv.summaries = conv.summaries || [];
+      conv.summaries.push({
+        id: genId(),
+        content: summaryText,
+        createdAt: Date.now(),
+        msgRange: [0, textMessages.length],
+      });
+      conv.lastSummaryAt = textMessages.length;
+      saveData();
+      MiniApp.showToast('总结完成 ✅');
+    } catch (e) {
+      MiniApp.showToast('总结失败：' + e.message);
+    }
+  }
+
+  function showSummariesModal(convId) {
+    const conv = getConv(convId);
+    const summaries = conv.summaries || [];
+
+    if (summaries.length === 0) {
+      MiniApp.showToast('还没有总结记录');
+      return;
+    }
+
+    const content = summaries.map((s, i) => `
+      <div class="summary-item">
+        <div class="summary-item__header">
+          <span class="summary-item__num">第 ${i + 1} 次总结</span>
+          <span class="summary-item__time">${formatTime(s.createdAt)}</span>
+        </div>
+        <div class="summary-item__content" id="summary-content-${i}">${escapeHtml(s.content)}</div>
+        <button class="summary-item__edit-btn" data-idx="${i}">✏️ 编辑</button>
+      </div>
+    `).join('');
+
+    showModal('历史总结', `<div class="summaries-list">${content}</div>`, null, {
+      confirmText: '关闭',
+      noCancel: true,
+      onAfterRender: () => {
+        document.querySelectorAll('.summary-item__edit-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.idx);
+            const s = summaries[idx];
+            showModal('编辑总结', `
+              <div class="modal-field">
+                <textarea id="modal-edit-summary" class="modal-input modal-textarea" rows="8">${escapeHtml(s.content)}</textarea>
+              </div>
+            `, () => {
+              const newContent = document.getElementById('modal-edit-summary')?.value.trim();
+              if (newContent) {
+                conv.summaries[idx].content = newContent;
+                saveData();
+                MiniApp.showToast('总结已更新 ✅');
+              }
+            });
+          });
+        });
+      }
+    });
+  }
+  /* ========== 总结相关 结束 ========== */
+
+  /* ========== 角色管理视图 开始 ========== */
+  function openCharsView() {
+    const $view = document.getElementById('chat-chars-view');
+    $view.innerHTML = renderCharsView();
+    $view.classList.add('open');
+    bindCharsViewEvents();
+  }
+
+  function renderCharsView() {
+    return `
+      <div class="chars-view">
+        <div class="chat-nav">
+          <button class="chat-nav__back" id="chars-back-btn">
+            <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+              <path d="M9 1L1 9L9 17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <h1 class="chat-nav__title">角色 & 群聊</h1>
+          <div class="chat-nav__actions">
+            <button class="chat-nav__btn" id="chars-add-char-btn" title="新建角色">👤＋</button>
+            <button class="chat-nav__btn" id="chars-add-group-btn" title="新建群聊">👥＋</button>
+          </div>
+        </div>
+
+        <div class="chars-list" id="chars-list">
+          ${renderCharsList()}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCharsList() {
+    let html = '';
+
+    if (_data.characters.length > 0) {
+      html += `<div class="chars-section-title">单聊角色</div>`;
+      html += _data.characters.map(char => `
+        <div class="char-card" data-char-id="${char.id}">
+          <div class="char-card__avatar">
+            ${char.avatarUrl
+              ? `<img src="${escapeHtml(char.avatarUrl)}" alt="${escapeHtml(char.name)}">`
+              : `<div class="char-card__avatar-fallback">${char.name.charAt(0)}</div>`}
+          </div>
+          <div class="char-card__info">
+            <div class="char-card__name">${escapeHtml(char.name)}</div>
+            <div class="char-card__bio">${escapeHtml(char.bio?.slice(0, 40) || '暂无设定')}</div>
+          </div>
+          <div class="char-card__actions">
+            <button class="char-card__btn char-card__btn--edit" data-char-id="${char.id}" title="编辑">✏️</button>
+            <button class="char-card__btn char-card__btn--chat" data-char-id="${char.id}" title="聊天">💬</button>
+          </div>
+        </div>
       `).join('');
     }
 
-    // Tab 切换
-    $tabs.querySelectorAll('.chat-sticker-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        _stickerTab = parseInt(tab.dataset.pack);
-        renderStickerPanel($container, chat);
-      });
-    });
-
-    // 发送 emoji 贴纸
-    $grid.querySelectorAll('[data-sticker]').forEach(item => {
-      item.addEventListener('click', () => {
-        const emoji = item.dataset.sticker;
-        addMessage(chat, { role: 'user', type: 'sticker', content: emoji });
-        // 贴纸不触发 AI 回复（可按需开启）
-      });
-    });
-
-    // 发送自定义图片贴纸
-    $grid.querySelectorAll('[data-sticker-url]').forEach(item => {
-      item.addEventListener('click', () => {
-        const url = item.dataset.stickerUrl;
-        addMessage(chat, { role: 'user', type: 'sticker', content: '🖼️', stickerUrl: url });
-      });
-    });
-
-    // 添加自定义贴纸
-    $grid.querySelector('#sticker-add-custom')?.addEventListener('click', () => {
-      const url = prompt('输入贴纸图片 URL：');
-      if (!url?.trim()) return;
-      _data.userStickers.push(url.trim());
-      saveData();
-      renderStickerPanel($container, chat);
-      MiniApp.showToast('贴纸已添加 🖼️');
-    });
-  }
-  /* ========== 贴纸面板 结束 ========== */
-
-  /* ========== 新建私聊弹窗 开始 ========== */
-  function openNewChatModal($container) {
-    const overlay = createModalOverlay();
-    overlay.innerHTML = `
-      <div class="chat-modal">
-        <div class="chat-modal__header">
-          <span class="chat-modal__title">新建聊天</span>
-          <button class="chat-modal__close" id="modal-close">✕</button>
-        </div>
-        <div class="chat-modal__body">
-          <div class="chat-card-preview" id="card-preview">
-            <div class="chat-card-preview__avatar" id="preview-avatar">👤</div>
-            <div class="chat-card-preview__info">
-              <div class="chat-card-preview__name" id="preview-name">新角色</div>
-              <div class="chat-card-preview__desc" id="preview-desc">填写下方信息来创建角色卡</div>
-            </div>
+    if (_data.groups.length > 0) {
+      html += `<div class="chars-section-title">群聊</div>`;
+      html += _data.groups.map(group => `
+        <div class="char-card" data-group-id="${group.id}">
+          <div class="char-card__avatar">
+            ${group.avatarUrl
+              ? `<img src="${escapeHtml(group.avatarUrl)}" alt="${escapeHtml(group.name)}">`
+              : `<div class="char-card__avatar-fallback">👥</div>`}
           </div>
-
-          <div class="chat-form-field">
-            <label class="chat-form-label">角色名称 *</label>
-            <input class="chat-form-input" id="nc-name" placeholder="例：小助手" maxlength="30">
+          <div class="char-card__info">
+            <div class="char-card__name">${escapeHtml(group.name)}</div>
+            <div class="char-card__bio">${group.members?.length || 0} 位成员</div>
           </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">头像 Emoji</label>
-            <input class="chat-form-input" id="nc-avatar" placeholder="例：🤖" maxlength="4">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">头像图片 URL（可选）</label>
-            <input class="chat-form-input" id="nc-avatar-url" placeholder="https://...">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">简介（列表显示）</label>
-            <input class="chat-form-input" id="nc-persona" placeholder="例：温柔体贴的AI伴侣" maxlength="60">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">系统提示词（角色设定）</label>
-            <textarea class="chat-form-textarea" id="nc-prompt" placeholder="例：你是小助手，性格温柔，说话带有关心的语气…" rows="4"></textarea>
-          </div>
-
-          <div class="chat-form-field">
-            <label class="chat-form-label">或导入角色卡 JSON</label>
-            <div class="chat-json-drop" id="nc-json-drop">
-              <span class="chat-json-drop__icon">📂</span>
-              点击选择 JSON 文件，或拖拽到此处<br>
-              <span style="font-size:11px;opacity:0.7;">支持 SillyTavern / TavernAI 格式</span>
-            </div>
-            <input type="file" id="nc-json-file" accept=".json" style="display:none;">
+          <div class="char-card__actions">
+            <button class="char-card__btn char-card__btn--edit" data-group-id="${group.id}" title="编辑">✏️</button>
+            <button class="char-card__btn char-card__btn--chat" data-group-id="${group.id}" title="聊天">💬</button>
           </div>
         </div>
-        <div class="chat-modal        <div class="chat-modal__footer">
-          <button class="chat-modal__btn chat-modal__btn--secondary" id="modal-cancel">取消</button>
-          <button class="chat-modal__btn chat-modal__btn--primary" id="modal-confirm">创建</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('open'));
-
-    // 实时预览
-    const $name    = overlay.querySelector('#nc-name');
-    const $avatar  = overlay.querySelector('#nc-avatar');
-    const $persona = overlay.querySelector('#nc-persona');
-
-    function updatePreview() {
-      overlay.querySelector('#preview-name').textContent = $name.value || '新角色';
-      overlay.querySelector('#preview-avatar').textContent = $avatar.value || '👤';
-      overlay.querySelector('#preview-desc').textContent = $persona.value || '填写下方信息来创建角色卡';
+      `).join('');
     }
 
-    $name.addEventListener('input', updatePreview);
-    $avatar.addEventListener('input', updatePreview);
-    $persona.addEventListener('input', updatePreview);
+    if (!html) {
+      html = `
+        <div class="chat-list__empty">
+          <div class="chat-list__empty-icon">👤</div>
+          <p>还没有角色</p>
+          <p class="chat-list__empty-sub">点击右上角创建角色或群聊</p>
+        </div>`;
+    }
 
-    // JSON 导入
-    const $jsonDrop = overlay.querySelector('#nc-json-drop');
-    const $jsonFile = overlay.querySelector('#nc-json-file');
+    return html;
+  }
 
-    $jsonDrop.addEventListener('click', () => $jsonFile.click());
-
-    $jsonDrop.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      $jsonDrop.classList.add('dragover');
-    });
-    $jsonDrop.addEventListener('dragleave', () => $jsonDrop.classList.remove('dragover'));
-    $jsonDrop.addEventListener('drop', (e) => {
-      e.preventDefault();
-      $jsonDrop.classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (file) parseCardJson(file, overlay);
+  function bindCharsViewEvents() {
+    document.getElementById('chars-back-btn')?.addEventListener('click', () => {
+      document.getElementById('chat-chars-view')?.classList.remove('open');
     });
 
-    $jsonFile.addEventListener('change', () => {
-      if ($jsonFile.files[0]) parseCardJson($jsonFile.files[0], overlay);
+    document.getElementById('chars-add-char-btn')?.addEventListener('click', () => {
+      showCharEditor(null);
     });
 
-    // 关闭
-    overlay.querySelector('#modal-close').addEventListener('click', () => closeModal(overlay));
-    overlay.querySelector('#modal-cancel').addEventListener('click', () => closeModal(overlay));
+    document.getElementById('chars-add-group-btn')?.addEventListener('click', () => {
+      showGroupEditor(null);
+    });
 
-    // 确认创建
-    overlay.querySelector('#modal-confirm').addEventListener('click', () => {
-      const name = overlay.querySelector('#nc-name').value.trim();
-      if (!name) { MiniApp.showToast('请输入角色名称'); return; }
+    document.getElementById('chars-list')?.querySelectorAll('.char-card__btn--edit').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (btn.dataset.charId) showCharEditor(btn.dataset.charId);
+        else if (btn.dataset.groupId) showGroupEditor(btn.dataset.groupId);
+      });
+    });
 
-      const contact = {
-        id: genId(),
+    document.getElementById('chars-list')?.querySelectorAll('.char-card__btn--chat').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('chat-chars-view')?.classList.remove('open');
+        if (btn.dataset.charId) openConversation(`char_${btn.dataset.charId}`);
+        else if (btn.dataset.groupId) openConversation(`group_${btn.dataset.groupId}`);
+      });
+    });
+  }
+  /* ========== 角色管理视图 结束 ========== */
+
+  /* ========== 角色编辑器 开始 ========== */
+  function showCharEditor(charId) {
+    const char = charId ? getCharById(charId) : null;
+    showModal(char ? '编辑角色' : '新建角色', `
+      <div class="modal-field">
+        <label>角色名称 *</label>
+        <input type="text" id="ce-name" class="modal-input" value="${escapeHtml(char?.name || '')}" placeholder="角色名...">
+      </div>
+      <div class="modal-field">
+        <label>头像 URL</label>
+        <input type="text" id="ce-avatar" class="modal-input" value="${escapeHtml(char?.avatarUrl || '')}" placeholder="https://...">
+      </div>
+      <div class="modal-field">
+        <label>角色设定 / 性格</label>
+        <textarea id="ce-bio" class="modal-input modal-textarea" rows="4" placeholder="描述角色的性格、背景...">${escapeHtml(char?.bio || '')}</textarea>
+      </div>
+      <div class="modal-field">
+        <label>系统提示词（可选）</label>
+        <textarea id="ce-system" class="modal-input modal-textarea" rows="3" placeholder="额外的角色扮演指令...">${escapeHtml(char?.systemPrompt || '')}</textarea>
+      </div>
+      <div class="modal-field">
+        <label>知识库（可选）</label>
+        <textarea id="ce-knowledge" class="modal-input modal-textarea" rows="3" placeholder="角色的背景知识、世界观...">${escapeHtml(char?.knowledgeBase || '')}</textarea>
+      </div>
+    `, () => {
+      const name = document.getElementById('ce-name')?.value.trim();
+      if (!name) { MiniApp.showToast('请输入角色名称'); return false; }
+
+      const data = {
         name,
-        avatar: overlay.querySelector('#nc-avatar').value.trim() || '👤',
-        avatarUrl: overlay.querySelector('#nc-avatar-url').value.trim(),
-        persona: overlay.querySelector('#nc-persona').value.trim(),
-        systemPrompt: overlay.querySelector('#nc-prompt').value.trim(),
-        knowledgeBase: [],
-        messages: [],
-        unread: 0,
-        summary: '',
-        lastSummaryAt: 0,
+        avatarUrl: document.getElementById('ce-avatar')?.value.trim() || '',
+        bio: document.getElementById('ce-bio')?.value.trim() || '',
+        systemPrompt: document.getElementById('ce-system')?.value.trim() || '',
+        knowledgeBase: document.getElementById('ce-knowledge')?.value.trim() || '',
       };
 
-      _data.contacts.push(contact);
+      if (char) {
+        Object.assign(char, data);
+      } else {
+        _data.characters.push({ id: genId(), ...data });
+      }
       saveData();
-      closeModal(overlay);
-      renderListView($container);
-      MiniApp.showToast(`「${name}」已创建 ✨`);
+
+      // 刷新角色列表
+      const $list = document.getElementById('chars-list');
+      if ($list) $list.innerHTML = renderCharsList();
+      bindCharsViewEvents();
+      renderConvList();
+      MiniApp.showToast(char ? '角色已更新 ✅' : '角色已创建 🎉');
     });
   }
-  /* ========== 新建私聊弹窗 结束 ========== */
+  /* ========== 角色编辑器 结束 ========== */
 
-  /* ========== 编辑私聊弹窗 开始 ========== */
-  function openEditChatModal($container, chat) {
-    const overlay = createModalOverlay();
-    overlay.innerHTML = `
-      <div class="chat-modal">
-        <div class="chat-modal__header">
-          <span class="chat-modal__title">编辑角色卡</span>
-          <button class="chat-modal__close" id="modal-close">✕</button>
-        </div>
-        <div class="chat-modal__body">
-          <div class="chat-form-field">
-            <label class="chat-form-label">角色名称 *</label>
-            <input class="chat-form-input" id="ec-name" value="${escHtml(chat.name)}" maxlength="30">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">头像 Emoji</label>
-            <input class="chat-form-input" id="ec-avatar" value="${escHtml(chat.avatar || '')}" maxlength="4">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">头像图片 URL</label>
-            <input class="chat-form-input" id="ec-avatar-url" value="${escHtml(chat.avatarUrl || '')}" placeholder="https://...">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">简介</label>
-            <input class="chat-form-input" id="ec-persona" value="${escHtml(chat.persona || '')}" maxlength="60">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">系统提示词</label>
-            <textarea class="chat-form-textarea" id="ec-prompt" rows="5">${escHtml(chat.systemPrompt || '')}</textarea>
-          </div>
-        </div>
-        <div class="chat-modal__footer">
-          <button class="chat-modal__btn chat-modal__btn--secondary" id="modal-cancel">取消</button>
-          <button class="chat-modal__btn chat-modal__btn--primary" id="modal-confirm">保存</button>
+  /* ========== 群聊编辑器 开始 ========== */
+  function showGroupEditor(groupId) {
+    const group = groupId ? getGroupById(groupId) : null;
+    const charOptions = _data.characters.map(c => `
+      <label class="modal-checkbox">
+        <input type="checkbox" value="${c.id}" ${group?.members?.includes(c.id) ? 'checked' : ''}>
+        ${escapeHtml(c.name)}
+      </label>
+    `).join('');
+
+    showModal(group ? '编辑群聊' : '新建群聊', `
+      <div class="modal-field">
+        <label>群名称 *</label>
+        <input type="text" id="ge-name" class="modal-input" value="${escapeHtml(group?.name || '')}" placeholder="群名...">
+      </div>
+      <div class="modal-field">
+        <label>群头像 URL</label>
+        <input type="text" id="ge-avatar" class="modal-input" value="${escapeHtml(group?.avatarUrl || '')}" placeholder="https://...">
+      </div>
+      <div class="modal-field">
+        <label>选择成员</label>
+        <div class="modal-checkboxes" id="ge-members">
+          ${charOptions || '<p style="color:var(--text-secondary);font-size:13px;">请先创建角色</p>'}
         </div>
       </div>
-    `;
-
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('open'));
-
-    overlay.querySelector('#modal-close').addEventListener('click', () => closeModal(overlay));
-    overlay.querySelector('#modal-cancel').addEventListener('click', () => closeModal(overlay));
-
-    overlay.querySelector('#modal-confirm').addEventListener('click', () => {
-      const name = overlay.querySelector('#ec-name').value.trim();
-      if (!name) { MiniApp.showToast('请输入角色名称'); return; }
-
-      chat.name      = name;
-      chat.avatar    = overlay.querySelector('#ec-avatar').value.trim() || '👤';
-      chat.avatarUrl = overlay.querySelector('#ec-avatar-url').value.trim();
-      chat.persona   = overlay.querySelector('#ec-persona').value.trim();
-      chat.systemPrompt = overlay.querySelector('#ec-prompt').value.trim();
-
-      saveData();
-      closeModal(overlay);
-      renderChatView($container, chat);
-      MiniApp.showToast('角色卡已更新 ✅');
-    });
-  }
-  /* ========== 编辑私聊弹窗 结束 ========== */
-
-  /* ========== 新建群聊弹窗 开始 ========== */
-  function openNewGroupModal($container) {
-    const overlay = createModalOverlay();
-    let members = []; // { id, name, avatar, avatarUrl, persona }
-
-    function renderMembersHtml() {
-      if (!members.length) return '<div style="font-size:12px;color:var(--text-tertiary);">还没有成员，点击下方添加</div>';
-      return `<div class="chat-member-list">
-        ${members.map((m, i) => `
-          <div class="chat-member-chip">
-            <div class="chat-member-chip__avatar">${escHtml(m.avatar || '👤')}</div>
-            <span>${escHtml(m.name)}</span>
-            <span class="chat-member-chip__del" data-member-index="${i}" style="cursor:pointer;">✕</span>
-          </div>
-        `).join('')}
-      </div>`;
-    }
-
-    overlay.innerHTML = `
-      <div class="chat-modal">
-        <div class="chat-modal__header">
-          <span class="chat-modal__title">新建群聊</span>
-          <button class="chat-modal__close" id="modal-close">✕</button>
-        </div>
-        <div class="chat-modal__body">
-          <div class="chat-form-field">
-            <label class="chat-form-label">群聊名称 *</label>
-            <input class="chat-form-input" id="ng-name" placeholder="例：我的小团体" maxlength="30">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">群头像 Emoji</label>
-            <input class="chat-form-input" id="ng-avatar" placeholder="👥" maxlength="4">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">群成员</label>
-            <div id="ng-members-wrap">${renderMembersHtml()}</div>
-            <button class="chat-sidebar__action" id="ng-add-member" style="margin-top:8px;">
-              <span>➕</span> 添加成员
-            </button>
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">群聊系统提示词（可选）</label>
-            <textarea class="chat-form-textarea" id="ng-prompt" placeholder="描述这个群聊的背景和成员互动风格…" rows="3"></textarea>
-          </div>
-        </div>
-        <div class="chat-modal__footer">
-          <button class="chat-modal__btn chat-modal__btn--secondary" id="modal-cancel">取消</button>
-          <button class="chat-modal__btn chat-modal__btn--primary" id="modal-confirm">创建群聊</button>
-        </div>
+      <div class="modal-field">
+        <label>群聊设定（可选）</label>
+        <textarea id="ge-system" class="modal-input modal-textarea" rows="3" placeholder="群聊的背景设定...">${escapeHtml(group?.systemPrompt || '')}</textarea>
       </div>
-    `;
+    `, () => {
+      const name = document.getElementById('ge-name')?.value.trim();
+      if (!name) { MiniApp.showToast('请输入群名称'); return false; }
 
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('open'));
+      const members = [...document.querySelectorAll('#ge-members input:checked')].map(el => el.value);
 
-    function refreshMembers() {
-      overlay.querySelector('#ng-members-wrap').innerHTML = renderMembersHtml();
-      overlay.querySelectorAll('.chat-member-chip__del').forEach(btn => {
-        btn.addEventListener('click', () => {
-          members.splice(parseInt(btn.dataset.memberIndex), 1);
-          refreshMembers();
-        });
-      });
-    }
-
-    overlay.querySelector('#ng-add-member').addEventListener('click', () => {
-      openAddMemberModal(overlay, (member) => {
-        members.push(member);
-        refreshMembers();
-      });
-    });
-
-    overlay.querySelector('#modal-close').addEventListener('click', () => closeModal(overlay));
-    overlay.querySelector('#modal-cancel').addEventListener('click', () => closeModal(overlay));
-
-    overlay.querySelector('#modal-confirm').addEventListener('click', () => {
-      const name = overlay.querySelector('#ng-name').value.trim();
-      if (!name) { MiniApp.showToast('请输入群聊名称'); return; }
-      if (members.length < 1) { MiniApp.showToast('请至少添加一位成员'); return; }
-
-      const group = {
-        id: genId(),
+      const data = {
         name,
-        avatar: overlay.querySelector('#ng-avatar').value.trim() || '👥',
-        isGroup: true,
+        avatarUrl: document.getElementById('ge-avatar')?.value.trim() || '',
         members,
-        systemPrompt: overlay.querySelector('#ng-prompt').value.trim(),
-        knowledgeBase: [],
-        messages: [],
-        unread: 0,
-        summary: '',
-        lastSummaryAt: 0,
+        systemPrompt: document.getElementById('ge-system')?.value.trim() || '',
       };
 
-      _data.groups.push(group);
-      saveData();
-      closeModal(overlay);
-      _currentTab = 'groups';
-      renderListView($container);
-      MiniApp.showToast(`群聊「${name}」已创建 🎉`);
-    });
-  }
-  /* ========== 新建群聊弹窗 结束 ========== */
-
-  /* ========== 编辑群聊弹窗 开始 ========== */
-  function openEditGroupModal($container, chat) {
-    const overlay = createModalOverlay();
-    let members = JSON.parse(JSON.stringify(chat.members || []));
-
-    function renderMembersHtml() {
-      if (!members.length) return '<div style="font-size:12px;color:var(--text-tertiary);">还没有成员</div>';
-      return `<div class="chat-member-list">
-        ${members.map((m, i) => `
-          <div class="chat-member-chip">
-            <div class="chat-member-chip__avatar">${escHtml(m.avatar || '👤')}</div>
-            <span>${escHtml(m.name)}</span>
-            <span class="chat-member-chip__del" data-member-index="${i}" style="cursor:pointer;">✕</span>
-          </div>
-        `).join('')}
-      </div>`;
-    }
-
-    overlay.innerHTML = `
-      <div class="chat-modal">
-        <div class="chat-modal__header">
-          <span class="chat-modal__title">编辑群聊</span>
-          <button class="chat-modal__close" id="modal-close">✕</button>
-        </div>
-        <div class="chat-modal__body">
-          <div class="chat-form-field">
-            <label class="chat-form-label">群聊名称 *</label>
-            <input class="chat-form-input" id="eg-name" value="${escHtml(chat.name)}" maxlength="30">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">群头像 Emoji</label>
-            <input class="chat-form-input" id="eg-avatar" value="${escHtml(chat.avatar || '')}" maxlength="4">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">群成员</label>
-            <div id="eg-members-wrap">${renderMembersHtml()}</div>
-            <button class="chat-sidebar__action" id="eg-add-member" style="margin-top:8px;">
-              <span>➕</span> 添加成员
-            </button>
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">系统提示词</label>
-            <textarea class="chat-form-textarea" id="eg-prompt" rows="3">${escHtml(chat.systemPrompt || '')}</textarea>
-          </div>
-        </div>
-        <div class="chat-modal__footer">
-          <button class="chat-modal__btn chat-modal__btn--secondary" id="modal-cancel">取消</button>
-          <button class="chat-modal__btn chat-modal__btn--primary" id="modal-confirm">保存</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('open'));
-
-    function refreshMembers() {
-      overlay.querySelector('#eg-members-wrap').innerHTML = renderMembersHtml();
-      overlay.querySelectorAll('.chat-member-chip__del').forEach(btn => {
-        btn.addEventListener('click', () => {
-          members.splice(parseInt(btn.dataset.memberIndex), 1);
-          refreshMembers();
-        });
-      });
-    }
-
-    overlay.querySelector('#eg-add-member').addEventListener('click', () => {
-      openAddMemberModal(overlay, (member) => {
-        members.push(member);
-        refreshMembers();
-      });
-    });
-
-    overlay.querySelector('#modal-close').addEventListener('click', () => closeModal(overlay));
-    overlay.querySelector('#modal-cancel').addEventListener('click', () => closeModal(overlay));
-
-    overlay.querySelector('#modal-confirm').addEventListener('click', () => {
-      const name = overlay.querySelector('#eg-name').value.trim();
-      if (!name) { MiniApp.showToast('请输入群聊名称'); return; }
-
-      chat.name = name;
-      chat.avatar = overlay.querySelector('#eg-avatar').value.trim() || '👥';
-      chat.members = members;
-      chat.systemPrompt = overlay.querySelector('#eg-prompt').value.trim();
-
-      saveData();
-      closeModal(overlay);
-      renderChatView($container, chat);
-      MiniApp.showToast('群聊已更新 ✅');
-    });
-  }
-  /* ========== 编辑群聊弹窗 结束 ========== */
-
-  /* ========== 添加群成员弹窗 开始 ========== */
-  function openAddMemberModal(parentOverlay, onConfirm) {
-    const overlay = createModalOverlay();
-    overlay.style.zIndex = '7000';
-    overlay.innerHTML = `
-      <div class="chat-modal">
-        <div class="chat-modal__header">
-          <span class="chat-modal__title">添加成员</span>
-          <button class="chat-modal__close" id="am-close">✕</button>
-        </div>
-        <div class="chat-modal__body">
-          <div class="chat-form-field">
-            <label class="chat-form-label">成员名称 *</label>
-            <input class="chat-form-input" id="am-name" placeholder="例：小明" maxlength="20">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">头像 Emoji</label>
-            <input class="chat-form-input" id="am-avatar" placeholder="😊" maxlength="4">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">头像图片 URL（可选）</label>
-            <input class="chat-form-input" id="am-avatar-url" placeholder="https://...">
-          </div>
-          <div class="chat-form-field">
-            <label class="chat-form-label">角色设定</label>
-            <textarea class="chat-form-textarea" id="am-persona" placeholder="描述这个成员的性格和说话风格…" rows="3"></textarea>
-          </div>
-        </div>
-        <div class="chat-modal__footer">
-          <button class="chat-modal__btn chat-modal__btn--secondary" id="am-cancel">取消</button>
-          <button class="chat-modal__btn chat-modal__btn--primary" id="am-confirm">添加</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('open'));
-
-    overlay.querySelector('#am-close').addEventListener('click', () => closeModal(overlay));
-    overlay.querySelector('#am-cancel').addEventListener('click', () => closeModal(overlay));
-
-    overlay.querySelector('#am-confirm').addEventListener('click', () => {
-      const name = overlay.querySelector('#am-name').value.trim();
-      if (!name) { MiniApp.showToast('请输入成员名称'); return; }
-
-      onConfirm({
-        id: genId(),
-        name,
-        avatar: overlay.querySelector('#am-avatar').value.trim() || '👤',
-        avatarUrl: overlay.querySelector('#am-avatar-url').value.trim(),
-        persona: overlay.querySelector('#am-persona').value.trim(),
-      });
-
-      closeModal(overlay);
-    });
-  }
-  /* ========== 添加群成员弹窗 结束 ========== */
-
-  /* ========== 知识书添加弹窗 开始 ========== */
-  function openKbAddModal($container, chat) {
-    const overlay = createModalOverlay();
-    overlay.innerHTML = `
-      <div class="chat-modal">
-        <div class="chat-modal__header">
-          <span class="chat-modal__title">添加知识条目</span>
-          <button class="chat-modal__close" id="kb-close">✕</button>
-        </div>
-        <div class="chat-modal__body">
-          <div class="chat-form-field">
-            <label class="chat-form-label">知识内容</label>
-            <textarea class="chat-form-textarea" id="kb-content" placeholder="例：用户喜欢喝咖啡，不喜欢甜食…" rows="4"></textarea>
-          </div>
-          <div style="font-size:12px;color:var(--text-tertiary);line-height:1.6;">
-            知识书内容会附加到每次 AI 对话的系统提示词中，帮助 AI 记住重要信息。
-          </div>
-        </div>
-        <div class="chat-modal__footer">
-          <button class="chat-modal__btn chat-modal__btn--secondary" id="kb-cancel">取消</button>
-          <button class="chat-modal__btn chat-modal__btn--primary" id="kb-confirm">添加</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('open'));
-
-    overlay.querySelector('#kb-close').addEventListener('click', () => closeModal(overlay));
-    overlay.querySelector('#kb-cancel').addEventListener('click', () => closeModal(overlay));
-
-    overlay.querySelector('#kb-confirm').addEventListener('click', () => {
-      const content = overlay.querySelector('#kb-content').value.trim();
-      if (!content) { MiniApp.showToast('请输入知识内容'); return; }
-
-      if (!chat.knowledgeBase) chat.knowledgeBase = [];
-      chat.knowledgeBase.push(content);
-      saveData();
-      closeModal(overlay);
-
-      // 刷新侧边栏知识书列表
-      const $kbList = $container.querySelector('#sidebar-kb-list');
-      if ($kbList) {
-        $kbList.innerHTML = renderKbList(chat);
-        bindSidebarEvents($container, chat);
+      if (group) {
+        Object.assign(group, data);
+      } else {
+        _data.groups.push({ id: genId(), ...data });
       }
+      saveData();
 
-      MiniApp.showToast('知识条目已添加 📖');
+      const $list = document.getElementById('chars-list');
+      if ($list) $list.innerHTML = renderCharsList();
+      bindCharsViewEvents();
+      renderConvList();
+      MiniApp.showToast(group ? '群聊已更新 ✅' : '群聊已创建 🎉');
     });
   }
-  /* ========== 知识书添加弹窗 结束 ========== */
+  /* ========== 群聊编辑器 结束 ========== */
 
-  /* ========== JSON 角色卡解析 开始 ========== */
-  function parseCardJson(file, overlay) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const json = JSON.parse(e.target.result);
+  /* ========== 聊天全局设置视图 开始 ========== */
+  function openChatSettingsView() {
+    const $view = document.getElementById('chat-settings-view');
+    $view.innerHTML = renderChatSettingsView();
+    $view.classList.add('open');
+    bindChatSettingsEvents();
+  }
 
-        // 兼容 SillyTavern / TavernAI / 通用格式
-        const data = json.data || json.char_data || json;
-        const name        = data.name || data.char_name || '';
-        const description = data.description || data.char_persona || data.personality || '';
-        const scenario    = data.scenario || '';
-        const firstMsg    = data.first_mes || data.first_message || '';
-        const avatarUrl   = data.avatar || '';
+  function renderChatSettingsView() {
+    const myProfile = _data.myProfile;
+    return `
+      <div class="chat-settings">
+        <div class="chat-nav">
+          <button class="chat-nav__back" id="cs-back-btn">
+            <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+              <path d="M9 1L1 9L9 17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <h1 class="chat-nav__title">聊天设置</h1>
+          <div style="width:44px"></div>
+        </div>
+        <div class="chat-settings__body">
 
-        // 填充表单
-        if (name)     overlay.querySelector('#nc-name').value = name;
-        if (avatarUrl) overlay.querySelector('#nc-avatar-url').value = avatarUrl;
+          <!-- 我的全局资料 -->
+          <div class="info-section">
+            <div class="info-section__title">我的全局资料</div>
+            <div class="info-field">
+              <label>昵称</label>
+              <input type="text" id="cs-my-name" class="info-input" value="${escapeHtml(myProfile.name || '')}" placeholder="我的昵称...">
+            </div>
+            <div class="info-field">
+              <label>头像 URL</label>
+              <input type="text" id="cs-my-avatar" class="info-input" value="${escapeHtml(myProfile.avatarUrl || '')}" placeholder="https://...">
+            </div>
+            <div class="info-field">
+              <label>全局人设</label>
+              <textarea id="cs-my-bio" class="info-input info-textarea" rows="3" placeholder="描述你自己...">${escapeHtml(myProfile.bio || '')}</textarea>
+            </div>
+          </div>
 
-        const persona = description.slice(0, 60);
-        if (persona) overlay.querySelector('#nc-persona').value = persona;
+          <!-- AI 模型选择 -->
+          <div class="info-section">
+            <div class="info-section__title">AI 模型</div>
+            <div class="info-field">
+              <label>当前模型</label>
+              <div class="model-select-row">
+                <select id="cs-model-select" class="info-input info-select">
+                  <option value="">-- 点击刷新获取模型 --</option>
+                  ${_availableModels.map(m => `
+                    <option value="${escapeHtml(m)}" ${MiniStore.get('ai.model') === m ? 'selected' : ''}>${escapeHtml(m)}</option>
+                  `).join('')}
+                </select>
+                <button class="info-btn" id="cs-refresh-models-btn" style="margin-top:8px;">🔄 刷新模型列表</button>
+              </div>
+            </div>
+          </div>
 
-        let prompt = description;
-        if (scenario) prompt += `\n\n场景：${scenario}`;
-        if (prompt)   overlay.querySelector('#nc-prompt').value = prompt;
+          <!-- 表情包管理 -->
+          <div class="info-section">
+            <div class="info-section__title">表情包管理</div>
+            <div class="sticker-manage-grid" id="sticker-manage-grid">
+              ${_data.stickers.length === 0
+                ? '<p style="color:var(--text-secondary);font-size:13px;">还没有表情包</p>'
+                : _data.stickers.map(s => `
+                  <div class="sticker-manage-item">
+                    <img src="${escapeHtml(s.url)}" alt="${escapeHtml(s.name || '')}" onerror="this.parentElement.style.display='none'">
+                    <button class="sticker-manage-del" data-sticker-id="${s.id}">✕</button>
+                  </div>
+                `).join('')}
+            </div>
+            <button class="info-btn" id="cs-add-sticker-btn">＋ 添加表情包</button>
+          </div>
 
-        // 更新预览
-        overlay.querySelector('#preview-name').textContent = name || '新角色';
-        overlay.querySelector('#preview-desc').textContent = persona || '角色卡已导入';
+          <!-- 总结 Prompt -->
+          <div class="info-section">
+            <div class="info-section__title">全局总结 Prompt</div>
+            <textarea id="cs-summary-prompt" class="info-input info-textarea" rows="5">${escapeHtml(_data.summaryPrompt)}</textarea>
+          </div>
 
-        // 如果有开场白，标记为首条消息
-        if (firstMsg) {
-          overlay.querySelector('#nc-prompt').value += `\n\n【开场白】${firstMsg}`;
+          <button class="info-btn info-btn--primary" id="cs-save-btn">保存设置</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindChatSettingsEvents() {
+    document.getElementById('cs-back-btn')?.addEventListener('click', () => {
+      document.getElementById('chat-settings-view')?.classList.remove('open');
+    });
+
+    // 刷新模型列表
+    document.getElementById('cs-refresh-models-btn')?.addEventListener('click', async () => {
+      MiniApp.showToast('正在获取模型列表...');
+      const models = await fetchModels();
+      if (models.length === 0) {
+        MiniApp.showToast('获取失败，请检查 API 配置');
+        return;
+      }
+      const $select = document.getElementById('cs-model-select');
+      if ($select) {
+        const currentModel = MiniStore.get('ai.model') || '';
+        $select.innerHTML = models.map(m => `
+          <option value="${escapeHtml(m)}" ${currentModel === m ? 'selected' : ''}>${escapeHtml(m)}</option>
+        `).join('');
+      }
+      MiniApp.showToast(`获取到 ${models.length} 个模型 ✅`);
+    });
+
+    // 删除表情包
+    document.getElementById('sticker-manage-grid')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.sticker-manage-del');
+      if (btn) {
+        _data.stickers = _data.stickers.filter(s => s.id !== btn.dataset.stickerId);
+        saveData();
+        const grid = document.getElementById('sticker-manage-grid');
+        if (grid) {
+          grid.innerHTML = _data.stickers.length === 0
+            ? '<p style="color:var(--text-secondary);font-size:13px;">还没有表情包</p>'
+            : _data.stickers.map(s => `
+              <div class="sticker-manage-item">
+                <img src="${escapeHtml(s.url)}" alt="${escapeHtml(s.name || '')}" onerror="this.parentElement.style.display='none'">
+                <button class="sticker-manage-del" data-sticker-id="${s.id}">✕</button>
+              </div>
+            `).join('');
         }
-
-        MiniApp.showToast('角色卡导入成功 ✅');
-      } catch (err) {
-        MiniApp.showToast('JSON 解析失败，请检查格式 ❌');
+        MiniApp.showToast('已删除');
       }
+    });
+
+    // 添加表情包
+    document.getElementById('cs-add-sticker-btn')?.addEventListener('click', () => {
+      showModal('添加表情包', `
+        <div class="modal-field">
+          <label>图片 URL</label>
+          <input type="text" id="modal-sticker-url" class="modal-input" placeholder="https://...">
+        </div>
+        <div class="modal-field">
+          <label>名称（可选）</label>
+          <input type="text" id="modal-sticker-name" class="modal-input" placeholder="表情包名称...">
+        </div>
+      `, () => {
+        const url = document.getElementById('modal-sticker-url')?.value.trim();
+        const name = document.getElementById('modal-sticker-name')?.value.trim();
+        if (!url) return;
+        _data.stickers.push({ id: genId(), url, name: name || '' });
+        saveData();
+        // 刷新管理界面
+        openChatSettingsView();
+        MiniApp.showToast('表情包已添加 😄');
+      });
+    });
+
+    // 保存
+    document.getElementById('cs-save-btn')?.addEventListener('click', () => {
+      _data.myProfile.name = document.getElementById('cs-my-name')?.value.trim() || '我';
+      _data.myProfile.avatarUrl = document.getElementById('cs-my-avatar')?.value.trim() || '';
+      _data.myProfile.bio = document.getElementById('cs-my-bio')?.value.trim() || '';
+      _data.summaryPrompt = document.getElementById('cs-summary-prompt')?.value.trim() || DEFAULT_DATA.summaryPrompt;
+
+      const selectedModel = document.getElementById('cs-model-select')?.value;
+      if (selectedModel) MiniStore.set('ai.model', selectedModel);
+
+      saveData();
+      MiniApp.showToast('设置已保存 ✅');
+    });
+  }
+  /* ========== 聊天全局设置视图 结束 ========== */
+
+  /* ========== 通用 Modal 开始 ========== */
+  function showModal(title, bodyHtml, onConfirm, options = {}) {
+    // 移除已有 modal
+    document.getElementById('chat-modal')?.remove();
+
+    const {
+      confirmText = '确定',
+      cancelText = '取消',
+      noCancel = false,
+      confirmDanger = false,
+      onAfterRender = null,
+    } = options;
+
+    const modal = document.createElement('div');
+    modal.id = 'chat-modal';
+    modal.className = 'chat-modal';
+    modal.innerHTML = `
+      <div class="chat-modal__overlay"></div>
+      <div class="chat-modal__box">
+        <div class="chat-modal__header">
+          <h3>${escapeHtml(title)}</h3>
+        </div>
+        <div class="chat-modal__body">${bodyHtml}</div>
+        <div class="chat-modal__footer">
+          ${!noCancel ? `<button class="chat-modal__btn chat-modal__btn--cancel" id="modal-cancel-btn">${escapeHtml(cancelText)}</button>` : ''}
+          ${onConfirm ? `<button class="chat-modal__btn ${confirmDanger ? 'chat-modal__btn--danger' : 'chat-modal__btn--confirm'}" id="modal-confirm-btn">${escapeHtml(confirmText)}
+                    </button>` : `<button class="chat-modal__btn chat-modal__btn--confirm" id="modal-confirm-btn">${escapeHtml(confirmText)}</button>`}
+        </div>
+      </div>
+    `;
+
+    document.getElementById('app-content').appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('open'));
+
+    const close = () => {
+      modal.classList.remove('open');
+      setTimeout(() => modal.remove(), 200);
     };
-    reader.readAsText(file);
-  }
-  /* ========== JSON 角色卡解析 结束 ========== */
 
-  /* ========== 弹窗工具函数 开始 ========== */
-  function createModalOverlay() {
-    const overlay = document.createElement('div');
-    overlay.className = 'chat-modal-overlay';
-    return overlay;
-  }
+    document.getElementById('modal-cancel-btn')?.addEventListener('click', close);
+    document.getElementById('modal-confirm-btn')?.addEventListener('click', () => {
+      if (onConfirm) {
+        const result = onConfirm();
+        if (result === false) return; // 返回false阻止关闭
+      }
+      close();
+    });
+    modal.querySelector('.chat-modal__overlay')?.addEventListener('click', close);
 
-  function closeModal(overlay) {
-    overlay.classList.remove('open');
-    setTimeout(() => overlay.remove(), 300);
+    if (onAfterRender) setTimeout(onAfterRender, 50);
   }
-  /* ========== 弹窗工具函数 结束 ========== */
+  /* ========== 通用 Modal 结束 ========== */
 
   /* ========== 公开 API 开始 ========== */
   return { open };
@@ -1667,5 +1973,6 @@ function open() {
 
 })();
 
-/* ========== Chat App 模块 结束 ========== */
+/* ========== ChatApp 聊天应用 结束 ========== */
+
 
