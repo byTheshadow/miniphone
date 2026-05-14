@@ -1,241 +1,143 @@
+<!-- ============================================================
+     index.html — MiniPhone 主入口
+     职责：加载所有资源、提供手机主屏幕容器骨架
+     ============================================================ -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>MiniPhone</title>
+  <!-- [HEAD START] 元信息 & 资源引入 -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>MiniPhone</title>
+  <link rel="manifest" href="manifest.json" />
 
-<!--========== 预加载字体 开始 ========== -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<!-- ========== 预加载字体 结束 ========== -->
-
-<!-- ========== 样式引入 开始 ========== -->
-<link rel="stylesheet" href="css/main.css">
-<link rel="stylesheet" href="css/homescreen.css">
-<link rel="icon" href="data:,">
-<link rel="stylesheet" href="css/chat.css">
-<link rel="stylesheet" href="css/widget-manager.css">
-
-<!-- ========== 样式引入 结束 ========== -->
+  <!-- 全局样式 -->
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/phone-shell.css" />
+  <link rel="stylesheet" href="css/widgets.css" />
+  <link rel="stylesheet" href="css/apps.css" />
+  <!-- [HEAD END] -->
 </head>
-<body>
+<body class="theme-dark">
 
-<!-- ========== 主屏幕容器 开始 ========== -->
-<div id="miniphone" class="miniphone theme-light">
-<!-- ========== 状态栏 开始 ========== -->
-<div id="status-bar" class="status-bar">
-  <div class="status-bar__left">
-    <span id="status-time" class="status-bar__time">12:00</span>
-  </div>
-  <div class="status-bar__center">
-    <div class="status-bar__notch"></div>
-  </div>
-  <div class="status-bar__right">
-    <span class="status-bar__icon">
-      <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor">
-        <rect x="0" y="9" width="3" height="3" rx="0.5"/>
-        <rect x="4.5" y="6" width="3" height="6" rx="0.5"/>
-        <rect x="9" y="3" width="3" height="9" rx="0.5"/>
-        <rect x="13.5" y="0" width="3" height="12" rx="0.5" opacity="0.35"/>
-      </svg>
-    </span>
-    <span class="status-bar__icon">
-      <svg width="15" height="12" viewBox="0 0 15 12" fill="currentColor">
-        <path d="M7.5 10.2a1.4 1.4 0 110 2.8 1.4 1.4 0 010-2.8z" transform="translate(0,-1.5)"/>
-        <path d="M4.05 9.15a4.9 4.9 0 016.9 0" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" transform="translate(0,-1.5)"/>
-        <path d="M1.4 6.5a8.6 8.6 0 0112.2 0" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" transform="translate(0,-1.5)"/>
-      </svg>
-    </span>
-    <span class="status-bar__battery">
-      <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
-        <rect x="0.5" y="0.5" width="20" height="11" rx="2.5" stroke="currentColor" stroke-width="1"/>
-        <rect x="2" y="2" width="16" height="8" rx="1.2" fill="currentColor"/>
-        <rect x="22" y="4" width="2.5" height="4" rx="1" fill="currentColor" opacity="0.5"/>
-      </svg>
-    </span>
-  </div>
-</div>
-<!-- ========== 状态栏 结束 ========== -->
+  <!-- [SCREEN-WRAPPER START] 全屏背景容器 -->
+  <div id="screen-wrapper">
 
+    <!-- [WALLPAPER START] 壁纸层 -->
+    <div id="wallpaper" class="wallpaper"></div>
+    <!-- [WALLPAPER END] -->
 
-  <!-- ========== 主屏幕滑动区域 开始 ========== -->
-  <div id="home-screen" class="home-screen">
-    <div id="pages-container" class="pages-container">
-      <!-- 页面由JS 动态生成 -->
-    </div>
-  </div>
-  <!-- ========== 主屏幕滑动区域 结束 ========== -->
+    <!-- [PHONE-FRAME START] 手机主屏幕框架 -->
+    <div id="phone-frame">
 
-  <!-- ========== 页面指示器 开始 ========== -->
-  <div id="page-dots" class="page-dots">
-    <!-- 由 JS 动态生成 -->
-  </div>
-  <!-- ========== 页面指示器 结束 ========== -->
-
-  <!-- ========== 底部 Dock栏 开始 ========== -->
-  <div id="dock" class="dock">
-    <div class="dock__glass"></div>
-    <div id="dock-icons" class="dock__icons">
-      <!-- 由 JS 动态生成 -->
-    </div>
-  </div>
-  <!-- ========== 底部 Dock 栏 结束 ========== -->
-
-  <!-- ========== 底部横条 开始 ========== -->
-  <div class="home-indicator">
-    <div class="home-indicator__bar"></div>
-  </div>
-  <!-- ========== 底部横条 结束 ========== -->
-
-</div>
-<!-- ========== 主屏幕容器 结束 ========== -->
-
-<!-- ========== App 全屏视图容器 开始 ========== -->
-<div id="app-view" class="app-view">
-  <div id="app-content" class="app-view__content"></div>
-</div>
-<!-- ========== App 全屏视图容器 结束 ========== -->
-
-<!-- ========== 设置面板 开始 ========== -->
-<div id="settings-panel" class="settings-panel">
-  <div class="settings-panel__glass">
-    <div class="settings-panel__header">
-      <h2>⚙️ 设置</h2>
-      <button id="settings-close" class="settings-panel__close">✕</button>
-    </div>
-    <div class="settings-panel__body">
-
-      <!-- 主题切换 -->
-      <div class="settings-group">
-        <div class="settings-group__title">外观</div>
-        <div class="settings-item">
-          <span>深色模式</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="setting-dark-mode">
-            <span class="toggle-switch__slider"></span>
-          </label>
-        </div>
-        <div class="settings-item">
-          <span>显示状态栏</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="setting-status-bar" checked>
-            <span class="toggle-switch__slider"></span>
-          </label>
+      <!-- [STATUS-BAR START] 状态栏 -->
+      <div id="status-bar">
+        <span id="status-time">00:00</span>
+        <div id="status-icons">
+          <span class="status-icon" id="status-signal">●●●</span>
+          <span class="status-icon" id="status-wifi">WiFi</span>
+          <span class="status-icon" id="status-battery">🔋</span>
         </div>
       </div>
+      <!-- [STATUS-BAR END] -->
 
-      <!-- 壁纸 -->
-      <div class="settings-group">
-        <div class="settings-group__title">壁纸</div>
-        <div class="settings-item">
-          <span>壁纸 URL</span>
-          <input type="text" id="setting-wallpaper" class="settings-input" placeholder="输入图片 URL...">
+      <!-- [HOME-SCREEN START] 主屏幕滑动区域 -->
+      <div id="home-screen">
+
+        <!-- [PAGE-DOTS START] 页面指示点 -->
+        <div id="page-dots"></div>
+        <!-- [PAGE-DOTS END] -->
+
+        <!-- [PAGES-CONTAINER START] 所有页面的滑动容器 -->
+        <div id="pages-container">
+          <!-- 页面由 JS 动态生成 -->
         </div>
-        <div class="settings-item">
-          <button id="setting-wallpaper-apply" class="settings-btn">应用壁纸</button>
-          <button id="setting-wallpaper-clear" class="settings-btn settings-btn--secondary">清除</button>
+        <!-- [PAGES-CONTAINER END] -->
+
+      </div>
+      <!-- [HOME-SCREEN END] -->
+
+      <!-- [DOCK START] 底部 Dock 栏 -->
+      <div id="dock">
+        <div id="dock-glass"></div>
+        <div id="dock-icons">
+          <!-- Dock 图标由 JS 动态生成 -->
         </div>
       </div>
+      <!-- [DOCK END] -->
 
-      <!-- AI 配置 -->
-      <div class="settings-group">
-        <div class="settings-group__title">AI 配置 (OpenAI 兼容)</div>
-        <div class="settings-item settings-item--col">
-          <span>API Base URL</span>
-          <input type="text" id="setting-ai-base" class="settings-input" placeholder="https://api.openai.com/v1">
-        </div>
-        <div class="settings-item settings-item--col">
-          <span>API Key</span>
-          <input type="password" id="setting-ai-key" class="settings-input" placeholder="sk-...">
-        </div>
-        <div class="settings-item settings-item--col">
-  <span>模型名称</span>
-  <div style="font-size:13px;color:var(--text-secondary);padding:6px 0;">
-    保存 API 配置后，在「聊天 → 设置 → AI 模型」中选择模型
-  </div>
-</div>
-        <div class="settings-item">
-          <button id="setting-ai-save" class="settings-btn">保存 AI 配置</button>
-        </div>
-      </div></div>
-  </div>
-</div>
-<!-- ========== 设置面板 结束 ========== -->
- <!-- ========== 小组件管理面板 开始 ========== -->
-<div id="widget-manager" class="widget-manager">
-  <div class="widget-manager__glass">
-
-    <!--顶部栏 -->
-    <div class="widget-manager__header">
-      <button id="wm-close" class="widget-manager__close">✕</button>
-      <h2>小组件管理</h2>
-      <button id="wm-add" class="widget-manager__add">＋ 添加</button>
     </div>
+    <!-- [PHONE-FRAME END] -->
 
-    <!-- 当前小组件列表 -->
-    <div id="wm-list" class="widget-manager__list">
-      <!-- 由JS 动态生成 -->
+    <!-- [APP-LAYER START] App 全屏覆盖层（打开 App 时使用） -->
+    <div id="app-layer" class="hidden">
+      <div id="app-container">
+        <!-- App 内容由 router.js 动态注入 -->
+      </div>
+      <!-- App 内部状态栏 -->
+      <div id="app-status-bar">
+        <button id="app-back-btn" aria-label="返回主屏幕">←</button>
+        <span id="app-title"></span>
+        <div style="width:32px"></div>
+      </div>
     </div>
+    <!-- [APP-LAYER END] -->
+
+    <!-- [MODAL-ROOT START] 全局弹窗挂载点 -->
+    <div id="modal-root"></div>
+    <!-- [MODAL-ROOT END] -->
+
+    <!-- [TOAST-ROOT START] 全局 Toast 挂载点 -->
+    <div id="toast-root"></div>
+    <!-- [TOAST-ROOT END] -->
+
+    <!-- [SETTINGS-PANEL START] 设置面板（从右侧滑入） -->
+    <div id="settings-panel" class="panel-hidden" role="dialog" aria-label="设置">
+      <!-- 由 settings.js 填充 -->
+    </div>
+    <!-- [SETTINGS-PANEL END] -->
 
   </div>
-</div>
-<!-- ========== 小组件管理面板 结束 ========== -->
+  <!-- [SCREEN-WRAPPER END] -->
 
-
-<!-- ========== 小组件编辑弹窗 开始 ========== -->
-<div id="widget-editor" class="widget-editor">
-  <div class="widget-editor__glass">
-
-    <div class="widget-editor__header">
-      <button id="we-back" class="widget-editor__back">← 返回</button>
-      <h3 id="we-title">编辑小组件</h3>
-      <button id="we-save" class="widget-editor__save">保存</button>
-    </div>
-
-    <!-- 预览区 -->
-    <div id="we-preview" class="widget-editor__preview"></div>
-
-    <!-- 编辑表单 -->
-    <div id="we-form" class="widget-editor__form">
-      <!-- 由 JS 根据小组件类型动态生成 -->
-    </div>
-
-  </div>
-</div>
-<!-- ========== 小组件编辑弹窗 结束 ========== -->
-
-
-
-<!-- ========== 小组件类型选择弹窗 开始 ========== -->
-<div id="widget-picker" class="widget-picker">
-  <div class="widget-picker__glass">
-
-    <div class="widget-picker__header">
-      <button id="wp-close" class="widget-picker__close">✕</button>
-      <h3>选择小组件类型</h3>
-    </div>
-
-    <div id="wp-grid" class="widget-picker__grid">
-      <!-- 由 JS 动态生成 -->
-    </div>
-
-  </div>
-</div>
-<!-- ========== 小组件类型选择弹窗 结束 ========== -->
-
-
-<!-- ========== Toast 提示容器 开始 ========== -->
-<div id="toast-container" class="toast-container"></div>
-<!-- ========== Toast 提示容器 结束 ========== -->
-
-<!-- ========== 脚本引入 开始 ========== -->
-<script src="js/core/store.js"></script>
-<script src="js/ui/widgets.js"></script>
-<script src="js/apps/chat/chat.js"></script>
-<script src="js/core/app.js"></script>
-<!-- ========== 脚本引入 结束 ========== -->
+  <!-- [SCRIPTS START] JS 模块加载（顺序敏感） -->
+  <!-- 核心层 -->
+  <script src="js/core/store.js"></script>
+  <script src="js/core/storage.js"></script>
+  <script src="js/core/router.js"></script>
+  <!-- UI 层 -->
+  <script src="js/ui/toast.js"></script>
+  <script src="js/ui/modal.js"></script>
+  <script src="js/ui/phone-shell.js"></script>
+  <!-- 小组件层 -->
+  <script src="js/widgets/widget-registry.js"></script>
+  <script src="js/widgets/clock.js"></script>
+  <script src="js/widgets/countdown.js"></script>
+  <script src="js/widgets/together-music.js"></script>
+  <script src="js/widgets/profile-card.js"></script>
+  <script src="js/widgets/mood.js"></script>
+  <script src="js/widgets/photo-carousel.js"></script>
+  <script src="js/widgets/sticky-note.js"></script>
+  <script src="js/widgets/fortune.js"></script>
+  <script src="js/widgets/pomodoro.js"></script>
+  <script src="js/widgets/steps.js"></script>
+  <!-- App 层 -->
+  <script src="js/apps/chat/chat.js"></script>
+  <script src="js/apps/calendar/calendar.js"></script>
+  <script src="js/apps/music/music.js"></script>
+  <script src="js/apps/pet/pet.js"></script>
+  <script src="js/apps/ledger/ledger.js"></script>
+  <script src="js/apps/ticket/ticket.js"></script>
+  <script src="js/apps/settings/settings.js"></script>
+  <!-- 入口（最后加载） -->
+  <script src="js/core/app.js"></script>
+  <!-- [SCRIPTS END] -->
 
 </body>
 </html>
+<!-- ============================================================
+     index.html END
+     ============================================================ -->
