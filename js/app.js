@@ -1,5 +1,5 @@
-const App = (() => {
-    let currentPage = 'home';
+var App = (function() {
+    var currentPage = 'home';
 
     function init() {
         updateClock();
@@ -11,149 +11,152 @@ const App = (() => {
         bindNavigation();
         bindSettings();
         bindKnowledgeBooks();
+        bindBgSettings();
+        bindLogs();
         loadSettings();
+        loadBgSettings();
         registerSW();
     }
 
     function updateClock() {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const timeEl = document.getElementById('status-time');
-        const clockEl = document.getElementById('home-clock');
+        var now = new Date();
+        var timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        var timeEl = document.getElementById('status-time');
+        var clockEl = document.getElementById('home-clock');
         if (timeEl) timeEl.textContent = timeStr;
         if (clockEl) clockEl.textContent = timeStr;
     }
 
     function registerSW() {
         if (!('serviceWorker' in navigator)) return;
-        navigator.serviceWorker.register('/miniphone/sw.js').then(reg => {
+        navigator.serviceWorker.register('/miniphone/sw.js').then(function(reg) {
             reg.update();
-            reg.addEventListener('updatefound', () => {
-                const newWorker = reg.installing;
-                newWorker.addEventListener('statechange', () => {
+            reg.addEventListener('updatefound', function() {
+                var newWorker = reg.installing;
+                newWorker.addEventListener('statechange', function() {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         UI.toast('New version available, updating...');
-                        setTimeout(() => newWorker.postMessage({ type: 'SKIP_WAITING' }), 1000);
+                        setTimeout(function() { newWorker.postMessage({ type: 'SKIP_WAITING' }); }, 1000);
                     }
                 });
             });
-        }).catch(e => console.log('SW registration failed:', e));
+        }).catch(function(e) { console.log('SW registration failed:', e); });
 
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
             window.location.reload();
         });
     }
 
-    // ── Navigation ────────────────────────────────────────────────
+    //── Navigation ────────────────────────────────────────────────
 
     function bindNavigation() {
-        document.querySelectorAll('.nav-item').forEach(btn => {
-            btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+        document.querySelectorAll('.nav-item').forEach(function(btn) {
+            btn.addEventListener('click', function() { navigateTo(btn.dataset.page); });
         });
-        document.querySelectorAll('.home-app').forEach(btn => {
-            btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+        document.querySelectorAll('.home-app').forEach(function(btn) {
+            btn.addEventListener('click', function() { navigateTo(btn.dataset.page); });
         });
-        document.querySelectorAll('.back-btn').forEach(btn => {
-            btn.addEventListener('click', () => navigateTo(btn.dataset.back, true));
+        document.querySelectorAll('.back-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() { navigateTo(btn.dataset.back, true); });
         });
     }
 
-    function navigateTo(pageId, isBack = false) {
-        const prevPage = document.querySelector('.page.active');
-        const nextPage = document.getElementById('page-' + pageId);
+    function navigateTo(pageId, isBack) {
+        var prevPage = document.querySelector('.page.active');
+        var nextPage = document.getElementById('page-' + pageId);
         if (!nextPage || prevPage === nextPage) return;
 
         if (pageId === 'chat-list') Chat.renderContactList();
         if (pageId === 'forum-list') Forum.renderPostList();
+        if (pageId === 'logs') renderLogs();
 
         if (prevPage) {
             prevPage.classList.remove('active');
             if (!isBack) {
                 prevPage.classList.add('slide-out-left');
-                setTimeout(() => prevPage.classList.remove('slide-out-left'), 350);
+                setTimeout(function() { prevPage.classList.remove('slide-out-left'); }, 350);
             }
         }
 
         nextPage.classList.add('active');
 
-        const navMap = {
+        var navMap = {
             'home': 'home',
             'chat-list': 'chat-list',
             'chat': 'chat-list',
             'forum-list': 'forum-list',
             'forum-post': 'forum-list',
-            'settings': 'settings'
+            'settings': 'settings',
+            'logs': 'settings'
         };
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.querySelector(`.nav-item[data-page="${navMap[pageId] || pageId}"]`)?.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+        var activeNav = document.querySelector('.nav-item[data-page="' + (navMap[pageId] || pageId) + '"]');
+        if (activeNav) activeNav.classList.add('active');
 
-        currentPage = pageId;
-    }
+        currentPage = pageId;}
 
     // ── Settings ──────────────────────────────────────────────────
 
     function bindSettings() {
-        document.getElementById('btn-fetch-models').addEventListener('click', async () => {
-            const url = document.getElementById('setting-api-url').value.trim();
-            const key = document.getElementById('setting-api-key').value.trim();
-            const settings = Store.getSettings();
+        document.getElementById('btn-fetch-models').addEventListener('click', function() {
+            var url = document.getElementById('setting-api-url').value.trim();
+            var key = document.getElementById('setting-api-key').value.trim();
+            var settings = Store.getSettings();
             settings.apiUrl = url;
             settings.apiKey = key;
             Store.saveSettings(settings);
-            try {
-                UI.toast('Fetching models...');
-                const models = await AI.fetchModels();
-                const select = document.getElementById('setting-model');
-                select.innerHTML = models.map(m =>
-                    `<option value="${m}" ${m === settings.model ? 'selected' : ''}>${m}</option>`
-                ).join('');
-                UI.toast('Found ' + models.length + ' models ✦');
-            } catch (e) {
+
+            UI.toast('Fetching models...');
+            AI.fetchModels().then(function(models) {
+                var select = document.getElementById('setting-model');
+                select.innerHTML = models.map(function(m) {
+                    return '<option value="' + m +'" ' + (m === settings.model ? 'selected' : '') + '>' + m + '</option>';
+                }).join('');
+                UI.toast('Found ' + models.length + ' models \u2726');
+            }).catch(function(e) {
                 UI.toast('Error: ' + e.message);
-            }
+            });
         });
 
-        document.getElementById('btn-save-settings').addEventListener('click', () => {
-            const settings = {
+        document.getElementById('btn-save-settings').addEventListener('click', function() {
+            var settings = {
                 apiUrl: document.getElementById('setting-api-url').value.trim(),
                 apiKey: document.getElementById('setting-api-key').value.trim(),
                 model: document.getElementById('setting-model').value,
                 username: document.getElementById('setting-username').value.trim() || 'User',
-                userAvatar: document.getElementById('setting-user-avatar').value.trim() || '😈',
+                userAvatar: document.getElementById('setting-user-avatar').value.trim() || '\uD83D\uDE08',
                 persona: document.getElementById('setting-persona').value.trim(),
                 summaryPrompt: document.getElementById('setting-summary-prompt').value.trim(),
-                forumPrompt: document.getElementById('setting-forum-prompt').value.trim(),
-                
+                forumPrompt: document.getElementById('setting-forum-prompt').value.trim()
             };
             Store.saveSettings(settings);
-            UI.toast('Settings saved ✦');
+            UI.toast('Settings saved \u2726');
         });
 
-        document.getElementById('btn-import-char').addEventListener('click', () => {
+        document.getElementById('btn-import-char').addEventListener('click', function() {
             document.getElementById('file-import-char').click();
         });
 
-        document.getElementById('file-import-char').addEventListener('change', (e) => {
-            const file = e.target.files[0];
+        document.getElementById('file-import-char').addEventListener('change', function(e) {
+            var file = e.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
+            var reader = new FileReader();
+            reader.onload = function(ev) {
                 try {
-                    const data = JSON.parse(ev.target.result);
+                    var data = JSON.parse(ev.target.result);
                     importCharFromJson(data);
                 } catch (_) {
                     UI.toast('Invalid JSON file');
                 }
             };
-            reader.readAsText(file);
-            e.target.value = '';
+            reader.readAsText(file);e.target.value = '';
         });
 
-        document.getElementById('btn-export-data').addEventListener('click', () => {
-            const data = Store.exportAll();
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
+        document.getElementById('btn-export-data').addEventListener('click', function() {
+            var data = Store.exportAll();
+            var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
             a.href = url;
             a.download = 'miniphone_backup_' + Date.now() + '.json';
             a.click();
@@ -161,20 +164,20 @@ const App = (() => {
             UI.toast('Data exported');
         });
 
-        document.getElementById('btn-import-data').addEventListener('click', () => {
+        document.getElementById('btn-import-data').addEventListener('click', function() {
             document.getElementById('file-import-data').click();
         });
 
-        document.getElementById('file-import-data').addEventListener('change', (e) => {
-            const file = e.target.files[0];
+        document.getElementById('file-import-data').addEventListener('change', function(e) {
+            var file = e.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
+            var reader = new FileReader();
+            reader.onload = function(ev) {
                 try {
-                    const data = JSON.parse(ev.target.result);
+                    var data = JSON.parse(ev.target.result);
                     Store.importAll(data);
                     UI.toast('Data imported. Reloading...');
-                    setTimeout(() => location.reload(), 1200);
+                    setTimeout(function() { location.reload(); }, 1200);
                 } catch (_) {
                     UI.toast('Invalid backup file');
                 }
@@ -198,15 +201,14 @@ const App = (() => {
             char.firstMessage = d.first_mes || '';
             var rawAvatar1 = data.avatar || d.avatar || '';
             char.avatar = (rawAvatar1.startsWith('data:') || rawAvatar1.startsWith('http'))
-                ? rawAvatar1 : '👤';
-        } else {
+                ? rawAvatar1 : '\uD83D\uDC64';} else {
             char.name = data.name || data.char_name || 'Unknown';
             char.persona = data.description || data.personality || data.persona || '';
             char.systemPrompt = data.system_prompt || data.scenario || '';
             char.firstMessage = data.first_mes || data.greeting || '';
             var rawAvatar2 = data.avatar || '';
             char.avatar = (rawAvatar2.startsWith('data:') || rawAvatar2.startsWith('http'))
-                ? rawAvatar2 : '👤';
+                ? rawAvatar2 : '\uD83D\uDC64';
         }
 
         if (!char.name || char.name === 'Unknown') {
@@ -232,7 +234,7 @@ const App = (() => {
             });
         }
 
-        UI.toast('Imported: ' + newChar.name + ' ✦');
+        UI.toast('Imported: ' + newChar.name + ' \u2726');
     }
 
     // ── Knowledge Books UI ────────────────────────────────────────
@@ -256,15 +258,15 @@ const App = (() => {
         } else {
             booksHtml = books.map(function(b) {
                 var scopeLabel = b.global
-                    ? '🌐 Global'
-                    : '👤 ' + ((Store.getChar(b.charId) || {}).name || 'Unknown char');
+                    ? '\uD83C\uDF10 Global'
+                    : '\uD83D\uDC64 ' + ((Store.getChar(b.charId) || {}).name || 'Unknown char');
                 var entryCount = (b.entries || []).length;
                 return '<div class="kb-item" style="padding:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;margin-bottom:8px;">'
                     + '<div style="display:flex;align-items:center;justify-content:space-between;">'
                     + '<div>'
                     + '<div style="font-size:13px;font-weight:500;">' + UI.escapeHtml(b.name) + '</div>'
                     + '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'
-                    + UI.escapeHtml(scopeLabel) + ' · ' + entryCount + ' entries'
+                    + UI.escapeHtml(scopeLabel) + ' \u00B7 ' + entryCount + ' entries'
                     + '</div>'
                     + '</div>'
                     + '<div style="display:flex;gap:6px;">'
@@ -285,7 +287,7 @@ const App = (() => {
             : '';
 
         UI.showModal(
-            '<h3>📚 Knowledge Books</h3>'
+            '<h3>\uD83D\uDCDA Knowledge Books</h3>'
             + '<div style="max-height:240px;overflow-y:auto;margin-bottom:12px;">'
             + booksHtml
             + '</div>'
@@ -294,7 +296,7 @@ const App = (() => {
             + '<input type="text" id="kb-new-name" placeholder="e.g. World Lore"></div>'
             + '<div class="setting-item"><label>Scope</label>'
             + '<select id="kb-new-scope">'
-            + '<option value="global">🌐 Global (all chats)</option>'
+            + '<option value="global">\uD83C\uDF10 Global (all chats)</option>'
             + optgroupHtml
             + '</select></div>'
             + '</div>'
@@ -342,20 +344,20 @@ const App = (() => {
                 + '<input type="text" class="kb-entry-keyword" value="' + UI.escapeHtml(entry.keyword || '') + '" placeholder="Keyword (optional)" style="font-size:12px;">'
                 + '<textarea class="kb-entry-content" rows="2" style="font-size:12px;">' + UI.escapeHtml(entry.content || '') + '</textarea>'
                 + '</div>'
-                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">✕</button>'
+                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">\u2715</button>'
                 + '</div>';
         }).join('');
 
         var emptyMsg = '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px;">No entries yet</p>';
 
         UI.showModal(
-            '<h3>✎ Edit: ' + UI.escapeHtml(book.name) + '</h3>'
+            '<h3>\u270E Edit: ' + UI.escapeHtml(book.name) + '</h3>'
             + '<div id="kb-entries-list" style="max-height:300px;overflow-y:auto;margin-bottom:10px;">'
             + (entriesHtml || emptyMsg)
             + '</div>'
-            + '<button class="gothic-btn full-width" id="btn-kb-add-entry" style="margin-bottom:12px;">＋ Add Entry</button>'
+            + '<button class="gothic-btn full-width" id="btn-kb-add-entry" style="margin-bottom:12px;">\uFF0B Add Entry</button>'
             + '<div class="modal-btns">'
-            + '<button class="gothic-btn" id="btn-kb-back">← Back</button>'
+            + '<button class="gothic-btn" id="btn-kb-back">\u2190 Back</button>'
             + '<button class="gothic-btn primary" id="btn-kb-save">Save</button>'
             + '</div>'
         );
@@ -373,7 +375,7 @@ const App = (() => {
                 + '<input type="text" class="kb-entry-keyword" placeholder="Keyword (optional)" style="font-size:12px;">'
                 + '<textarea class="kb-entry-content" rows="2" style="font-size:12px;"></textarea>'
                 + '</div>'
-                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">✕</button>';
+                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">\u2715</button>';
             list.appendChild(div);
             bindEntryDeleteBtns();
         });
@@ -390,7 +392,7 @@ const App = (() => {
                 if (content) entries.push({ keyword: keyword, content: content });
             });
             Store.updateKnowledgeBook(bookId, { entries: entries });
-            UI.toast('Knowledge book saved ✦');
+            UI.toast('Knowledge book saved \u2726');
             renderKBList();
         });
     }
@@ -401,6 +403,134 @@ const App = (() => {
                 var entry = btn.closest('.kb-entry');
                 if (entry) entry.remove();
             };
+        });
+    }
+
+    // ── Background Settings ───────────────────────────────────────
+
+    function bindBgSettings() {
+        // Toggle bindings
+        document.getElementById('bg-enabled-toggle').addEventListener('click', function() {
+            this.classList.toggle('on');
+        });
+        document.getElementById('bg-chat-toggle').addEventListener('click', function() {
+            this.classList.toggle('on');
+        });
+
+        // Range display
+        document.getElementById('bg-forum-chance').addEventListener('input', function() {
+            document.getElementById('bg-forum-chance-val').textContent = this.value + '%';
+        });
+        document.getElementById('bg-reply-chance').addEventListener('input', function() {
+            document.getElementById('bg-reply-chance-val').textContent = this.value + '%';
+        });
+        document.getElementById('bg-chat-chance').addEventListener('input', function() {
+            document.getElementById('bg-chat-chance-val').textContent = this.value + '%';
+        });
+
+        // Save
+        document.getElementById('btn-save-bg-settings').addEventListener('click', function() {
+            var bgSettings = {
+                enabled: document.getElementById('bg-enabled-toggle').classList.contains('on'),
+                forumPostInterval: parseInt(document.getElementById('bg-forum-interval').value) || 180,
+                forumPostChance: parseInt(document.getElementById('bg-forum-chance').value) || 50,
+                forumReplyChance: parseInt(document.getElementById('bg-reply-chance').value) || 50,
+                chatMessageEnabled: document.getElementById('bg-chat-toggle').classList.contains('on'),
+                chatMessageInterval: parseInt(document.getElementById('bg-chat-interval').value) || 300,
+                chatMessageChance: parseInt(document.getElementById('bg-chat-chance').value) || 30
+            };
+            Store.saveBgSettings(bgSettings);
+            Forum.restartBackgroundTasks();
+            UI.toast('Background settings saved \u2726');
+        });
+    }
+
+    function loadBgSettings() {
+        var bg = Store.getBgSettings();
+        document.getElementById('bg-enabled-toggle').classList.toggle('on', bg.enabled);
+        document.getElementById('bg-forum-interval').value = bg.forumPostInterval || 180;
+        document.getElementById('bg-forum-chance').value = bg.forumPostChance || 50;
+        document.getElementById('bg-forum-chance-val').textContent = (bg.forumPostChance || 50) + '%';
+        document.getElementById('bg-reply-chance').value = bg.forumReplyChance || 50;
+        document.getElementById('bg-reply-chance-val').textContent = (bg.forumReplyChance || 50) + '%';
+        document.getElementById('bg-chat-toggle').classList.toggle('on', bg.chatMessageEnabled || false);
+        document.getElementById('bg-chat-interval').value = bg.chatMessageInterval || 300;
+        document.getElementById('bg-chat-chance').value = bg.chatMessageChance || 30;
+        document.getElementById('bg-chat-chance-val').textContent = (bg.chatMessageChance || 30) + '%';
+    }
+
+    // ── Logs ──────────────────────────────────────────────────────
+
+    var logFilter = 'all';
+
+    function bindLogs() {
+        document.getElementById('btn-view-logs').addEventListener('click', function() {
+            navigateTo('logs');
+        });
+        document.getElementById('btn-clear-logs').addEventListener('click', function() {
+            Store.clearLogs();
+            renderLogs();
+            UI.toast('Logs cleared');
+        });
+    }
+
+    function renderLogs() {
+        var logs = Store.getLogs();
+        var controlsEl = document.getElementById('log-controls');
+        var listEl = document.getElementById('log-list');
+
+        // Filter buttons
+        var filters = ['all', 'error', 'warn', 'info'];
+        controlsEl.innerHTML = filters.map(function(f) {
+            return '<div class="log-filter' + (logFilter === f ? ' active' : '') + '" data-filter="' + f + '">'
+                + f.toUpperCase() + '</div>';
+        }).join('');
+
+        controlsEl.querySelectorAll('.log-filter').forEach(function(el) {
+            el.addEventListener('click', function() {
+                logFilter = el.dataset.filter;
+                renderLogs();
+            });
+        });
+
+        // Filter logs
+        var filtered = logFilter === 'all'
+            ? logs
+            : logs.filter(function(l) { return l.level === logFilter; });
+
+        if (filtered.length === 0) {
+            listEl.innerHTML = '<div class="empty-state">'
+                + '<div class="empty-icon">\uD83D\uDCCB</div>'
+                + '<p>No logs yet</p>'
+                + '</div>';
+            return;
+        }
+
+        listEl.innerHTML = filtered.map(function(log) {
+            var time = new Date(log.timestamp);
+            var timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            var dateStr = time.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+            var detailText = '';
+            if (log.detail) detailText += log.detail;
+            if (log.stack) detailText += '\n\nStack:\n' + log.stack;
+
+            return '<div class="log-item level-' + log.level + '" data-log-id="' + log.id + '">'
+                + '<div class="log-item-header">'
+                +   '<span class="log-level ' + log.level + '">' + log.level + '</span>'
+                +   '<span class="log-source">' + UI.escapeHtml(log.source) + '</span>'
+                +   '<span class="log-time">' + dateStr + ' ' + timeStr + '</span>'
+                + '</div>'
+                + '<div class="log-message">' + UI.escapeHtml(log.message) + '</div>'
+                + (detailText ? '<div class="log-detail">' + UI.escapeHtml(detailText) + '</div>' : '')
+                + '</div>';
+        }).join('');
+
+        // Click to expand
+        listEl.querySelectorAll('.log-item').forEach(function(el) {
+            el.addEventListener('click', function() {
+                el.classList.toggle('expanded');
+            });
         });
     }
 

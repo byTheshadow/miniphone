@@ -305,6 +305,50 @@ function getAnonRevealCount() {
     if (reveals.date !== today) return 0;
     return reveals.count;
 }
+// --- Error Log ---
+function getLogs() {
+    return get('error_logs', []);
+}
+function saveLogs(arr) {
+    set('error_logs', arr);
+}
+function addLog(entry) {
+    var logs = getLogs();
+    var logEntry = {
+        id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        timestamp: Date.now(),
+        level: entry.level || 'error',
+        source: entry.source || 'unknown',
+        message: entry.message || '',
+        detail: entry.detail || '',
+        stack: entry.stack || ''
+    };
+    logs.unshift(logEntry);
+    // Keep max 200 logs
+    if (logs.length > 200) logs = logs.slice(0, 200);
+    saveLogs(logs);
+    return logEntry;
+}
+function clearLogs() {
+    saveLogs([]);
+}
+
+// --- Background Task Settings ---
+function getBgSettings() {
+    return get('bg_settings', {
+        enabled: false,
+        forumPostInterval: 180,
+        forumPostChance: 50,
+        forumReplyChance: 50,
+        chatMessageEnabled: false,
+        chatMessageInterval: 300,
+        chatMessageChance: 30
+    });
+}
+function saveBgSettings(s) {
+    set('bg_settings', s);
+}
+
 
 
     return {
@@ -318,7 +362,9 @@ function getAnonRevealCount() {
         getPosts, savePosts, addPost, getPost, updatePost, deletePost,
         getKnowledgeBooks, saveKnowledgeBooks, addKnowledgeBook,
         getKnowledgeBook, updateKnowledgeBook, deleteKnowledgeBook,
-        exportAll, importAll, getNpcPool, saveNpcPool, addNpc, getRandomNpc,getAnonReveals, useAnonReveal, getAnonRevealCount,
+        exportAll, importAll, getNpcPool, saveNpcPool, addNpc, getRandomNpc,getAnonReveals, useAnonReveal, getAnonRevealCount,getLogs, saveLogs, addLog, clearLogs,
+getBgSettings, saveBgSettings,
+
     };
 })();
 

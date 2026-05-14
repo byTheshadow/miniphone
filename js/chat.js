@@ -739,11 +739,78 @@ const Chat = (() => {
         });
     }
 
+    //── Background Message (called by Forum/App for proactive chat) ──
+    async function sendBgMessage(charId) {
+        var char = Store.getChar(charId);
+        if (!char) return;
+        var settings = Store.getSettings();
+        if (!settings.apiUrl || !settings.model) return;
+
+        // Find existing conversation with this char
+        var convos = Store.getConversations();
+        var conv = convos.find(function(c) {
+            return c.charIds && c.charIds.length === 1 && c.charIds[0] === charId;
+        });
+        if (!conv) return;
+
+        var existingMsgs = Store.getMessages(conv.id);
+        if (existingMsgs.length === 0) return;
+
+        try {
+            var apiMessages = AI.buildMessages(conv.id, [charId]);
+            apiMessages.push({
+                role: 'user',
+                content: '[System: ' + char.name + ' decides to send a proactive message to the user. '
+                    + 'This could be sharing something interesting, asking about their day, '
+                    + 'reacting to a recent forum post, or just casual conversation. '
+                    + 'Stay in character. Do NOT include any system notes in your reply.]'
+            });
+
+            var reply = await AI.chat(apiMessages, { temperature: 1.0, max_tokens: 300 });
+
+            Store.addMessage(conv.id, {
+                senderId: char.id,
+                senderName: char.name,
+                senderAvatar: char.avatar || '\uD83D\uDC64',
+                content: reply.trim(),
+                role: 'assistant',
+                type: 'text'
+            });
+
+            Store.addLog({
+                level: 'info',
+                source: 'chat-bg',
+                message: char.name + ' sent a proactive message',
+                detail: 'Conv: ' + conv.id + ' | Content: ' + reply.trim().slice(0, 80)
+            });
+
+            // Refresh if user is viewing this chat
+            if (currentConvId === conv.id
+                && document.getElementById('page-chat').classList.contains('active')) {
+                renderMessages();
+            }
+            // Refresh contact list if visible
+            if (document.getElementById('page-chat-list').classList.contains('active')) {
+                renderContactList();
+            }
+        } catch (e) {
+            Store.addLog({
+                level: 'error',
+                source: 'chat-bg',
+                message: 'Background message failed for ' + char.name,
+                detail: e.message || String(e),
+                stack: e.stack || ''
+            });
+        }
+    }
+
     return {
         init,
         renderContactList,
         openChat,
-        getCurrentConvId: () => currentConvId
+        getCurrentConvId: function() { return currentConvId; },
+        sendBgMessage: sendBgMessage
     };
+
 })();
 

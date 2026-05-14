@@ -1,9 +1,10 @@
-const Forum = (() => {
-    let currentPostId = null;
-    let autoPostTimer = null;
-    let currentBoard = 'all';
+var Forum = (function() {
+    var currentPostId = null;
+    var autoPostTimer = null;
+    var autoChatTimer = null;
+    var currentBoard = 'all';
 
-    const BOARDS = [
+    var BOARDS = [
         { id: 'all',name: 'All',     icon: '\u2726' },
         { id: 'game',   name: 'Gaming',  icon: '\u2694' },
         { id: 'gossip', name: 'Gossip',  icon: '\u263E' },
@@ -12,14 +13,13 @@ const Forum = (() => {
         { id: 'social', name: 'Social',  icon: '\u2661' }
     ];
 
-    // Random NPC name pools
-    const NPC_NAMES = [
+    var NPC_NAMES = [
         'Wraith','Nyx','Obsidian','Hollow','Vesper','Shade','Grimm',
         'Phantom','Cinder','Raven','Dusk','Ember','Void','Specter',
         'Onyx','Thorn','Mist','Echo','Veil','Ash','Sable','Gloom',
         'Nocturne','Bane','Wisp','Murk','Dirge','Hex','Bleak','Rue'
     ];
-    const NPC_AVATARS = [
+    var NPC_AVATARS = [
         '\uD83D\uDC7B','\uD83D\uDDA4','\uD83D\uDD73','\u2620\uFE0F',
         '\uD83C\uDF11','\uD83E\uDDA7','\uD83D\uDC80','\uD83C\uDF0C',
         '\uD83D\uDD6F','\uD83E\uDDB4','\uD83C\uDF2B','\u26B0\uFE0F',
@@ -29,7 +29,7 @@ const Forum = (() => {
     function init() {
         renderTabBar();
         bindEvents();
-        startAutoPosting();
+        startBackgroundTasks();
     }
 
     function bindEvents() {
@@ -37,8 +37,8 @@ const Forum = (() => {
         document.getElementById('btn-comment').addEventListener('click', submitComment);
         document.getElementById('btn-post-menu').addEventListener('click', showPostMenu);
 
-        const commentInput = document.getElementById('comment-input');
-        commentInput.addEventListener('keydown', (e) => {
+        var commentInput = document.getElementById('comment-input');
+        commentInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 submitComment();
@@ -46,20 +46,20 @@ const Forum = (() => {
         });
     }
 
-    //========================
+    // ========================
     //  Tab Bar
     // ========================
     function renderTabBar() {
-        const bar = document.getElementById('forum-tab-bar');
-        bar.innerHTML = BOARDS.map(b =>
-            '<div class="forum-tab' + (b.id === currentBoard ? ' active' : '') + '" data-board="' + b.id + '">'
-            + b.icon + ' ' + b.name + '</div>'
-        ).join('');
+        var bar = document.getElementById('forum-tab-bar');
+        bar.innerHTML = BOARDS.map(function(b) {
+            return '<div class="forum-tab' + (b.id === currentBoard ? ' active' : '') + '" data-board="' + b.id + '">'
+                + b.icon + ' ' + b.name + '</div>';
+        }).join('');
 
-        bar.querySelectorAll('.forum-tab').forEach(el => {
-            el.addEventListener('click', () => {
+        bar.querySelectorAll('.forum-tab').forEach(function(el) {
+            el.addEventListener('click', function() {
                 currentBoard = el.dataset.board;
-                bar.querySelectorAll('.forum-tab').forEach(t => t.classList.remove('active'));
+                bar.querySelectorAll('.forum-tab').forEach(function(t) { t.classList.remove('active'); });
                 el.classList.add('active');
                 renderPostList();
             });
@@ -70,12 +70,11 @@ const Forum = (() => {
     //  Post List
     // ========================
     function renderPostList() {
-        const container = document.getElementById('forum-posts');
-        let posts = Store.getPosts();
+        var container = document.getElementById('forum-posts');
+        var posts = Store.getPosts();
 
-        // Filter by board
         if (currentBoard !== 'all') {
-            posts = posts.filter(p => p.board === currentBoard);
+            posts = posts.filter(function(p) { return p.board === currentBoard; });
         }
 
         if (posts.length === 0) {
@@ -86,35 +85,47 @@ const Forum = (() => {
             return;
         }
 
-        const now = Date.now();
-        const ONE_HOUR = 3600000;
+        var now = Date.now();
+        var ONE_HOUR = 3600000;
 
-        container.innerHTML = posts.map(post => {
-            const isUpvoted = post.upvotedBy && post.upvotedBy.includes('__user__');
-            const isHot = (post.upvotes ||0) >= 5;
-            const isNew = (now - post.createdAt) < ONE_HOUR;
-            const isAnon = post.isAnonymous;
-            const isForwarded = post.isForwarded;
+        container.innerHTML = posts.map(function(post) {
+            var isUpvoted = post.upvotedBy && post.upvotedBy.indexOf('__user__') >= 0;
+            var isHot = (post.upvotes || 0) >=5;
+            var isNew = (now - post.createdAt) < ONE_HOUR;
+            var isAnon = post.isAnonymous;
+            var isForwarded = post.isForwarded;
+            var isImagePost = post.type === 'image_desc';
 
-            let cardClass = 'post-card';
+            var cardClass = 'post-card';
             if (isHot) cardClass += ' hot-post';
             else if (isNew) cardClass += ' new-post';
             if (isAnon) cardClass += ' anon-post';
 
-            const displayName = isAnon ? '\u300E\u533F\u540D\u8005\u300F' : UI.escapeHtml(post.authorName ||'Anonymous');
-            const displayAvatar = isAnon ? '\uD83C\uDFAD' : post.authorAvatar;
+            var displayName = isAnon ? '\u300E\u533F\u540D\u8005\u300F' : UI.escapeHtml(post.authorName ||'Anonymous');
+            var displayAvatar = isAnon ? '\uD83C\uDFAD' : post.authorAvatar;
 
-            const boardInfo = post.board && post.board !== 'all'
+            var boardInfo = post.board && post.board !== 'all'
                 ? '<div class="post-board-tag">' + getBoardIcon(post.board) + ' ' + getBoardName(post.board) + '</div>'
                 : '';
 
-            const forwardedTag = isForwarded && post.forwardFrom
-                ? '<div class="forwarded-tag">Forwarded</div>'
+            var forwardedTag = isForwarded
+                ? '<div class="forwarded-tag"> Forwarded</div>'
                 : '';
 
-            const tagsHtml = post.tags && post.tags.length > 0
-                ? '<div class="post-tags">' + post.tags.map(t => '<span class="post-tag">' + UI.escapeHtml(t) + '</span>').join('') + '</div>'
+            var tagsHtml = post.tags && post.tags.length > 0
+                ? '<div class="post-tags">' + post.tags.map(function(t) { return '<span class="post-tag">' + UI.escapeHtml(t) + '</span>'; }).join('') + '</div>'
                 : '';
+
+            var bodyHtml = '';
+            if (isImagePost) {
+                bodyHtml = '<div class="post-image-desc">'
+                    + '<div class="image-desc-frame">'
+                    + '<div class="image-desc-icon">\uD83D\uDDBC\uFE0F</div>'
+                    + '<div class="image-desc-text">' + UI.escapeHtml(post.body) + '</div>'
+                    + '</div></div>';
+            } else {
+                bodyHtml = '<div class="post-card-body">' + UI.escapeHtml(post.body) + '</div>';
+            }
 
             return '<div class="' + cardClass + '" data-post-id="' + post.id + '">'
                 + forwardedTag
@@ -125,7 +136,7 @@ const Forum = (() => {
                 +   '<span class="post-timestamp">' + UI.formatTime(post.createdAt) + '</span>'
                 + '</div>'
                 + '<div class="post-card-title">' + UI.escapeHtml(post.title) + '</div>'
-                + '<div class="post-card-body">' + UI.escapeHtml(post.body) + '</div>'
+                + bodyHtml
                 + tagsHtml
                 + '<div class="post-card-footer">'
                 +   '<div class="post-stat ' + (isUpvoted ? 'upvoted' : '') + '" data-action="upvote" data-post-id="' + post.id + '">'
@@ -136,16 +147,15 @@ const Forum = (() => {
                 + '</div>';
         }).join('');
 
-        // Bind click events
-        container.querySelectorAll('.post-card').forEach(el => {
-            el.addEventListener('click', (e) => {
+        container.querySelectorAll('.post-card').forEach(function(el) {
+            el.addEventListener('click', function(e) {
                 if (e.target.closest('[data-action="upvote"]')) return;
                 openPost(el.dataset.postId);
             });
         });
 
-        container.querySelectorAll('[data-action="upvote"]').forEach(el => {
-            el.addEventListener('click', (e) => {
+        container.querySelectorAll('[data-action="upvote"]').forEach(function(el) {
+            el.addEventListener('click', function(e) {
                 e.stopPropagation();
                 toggleUpvote(el.dataset.postId);
             });
@@ -153,11 +163,11 @@ const Forum = (() => {
     }
 
     function getBoardIcon(boardId) {
-        const b = BOARDS.find(x => x.id === boardId);
+        var b = BOARDS.find(function(x) { return x.id === boardId; });
         return b ? b.icon : '\u2726';
     }
     function getBoardName(boardId) {
-        const b = BOARDS.find(x => x.id === boardId);
+        var b = BOARDS.find(function(x) { return x.id === boardId; });
         return b ? b.name : boardId;
     }
 
@@ -172,46 +182,70 @@ const Forum = (() => {
 
     function renderPostDetail() {
         if (!currentPostId) return;
-        const post = Store.getPost(currentPostId);
+        var post = Store.getPost(currentPostId);
         if (!post) return;
 
-        const container = document.getElementById('post-detail');
-        const isUpvoted = post.upvotedBy && post.upvotedBy.includes('__user__');
-        const isAnon = post.isAnonymous;
+        var container = document.getElementById('post-detail');
+        var isUpvoted = post.upvotedBy && post.upvotedBy.indexOf('__user__') >= 0;
+        var isAnon = post.isAnonymous;
+        var isImagePost = post.type === 'image_desc';
 
-        const displayName = isAnon ? '\u300E\u533F\u540D\u8005\u300F' : UI.escapeHtml(post.authorName || 'Anonymous');
-        const displayAvatar = isAnon ? '\uD83C\uDFAD' : post.authorAvatar;
+        var displayName = isAnon ? '\u300E\u533F\u540D\u8005\u300F' : UI.escapeHtml(post.authorName || 'Anonymous');
+        var displayAvatar = isAnon ? '\uD83C\uDFAD' : post.authorAvatar;
 
-        const boardTag = post.board && post.board !== 'all'
+        var boardTag = post.board && post.board !== 'all'
             ? '<div class="post-board-tag">' + getBoardIcon(post.board) + ' ' + getBoardName(post.board) + '</div>'
             : '';
 
-        const forwardedBanner = post.isForwarded && post.forwardFrom
+        var forwardedBanner = post.isForwarded
             ? '<div class="forwarded-banner">Forwarded from another post</div>'
             : '';
 
-        const tagsHtml = post.tags && post.tags.length > 0
-            ? '<div class="post-tags">' + post.tags.map(t => '<span class="post-tag">' + UI.escapeHtml(t) + '</span>').join('') + '</div>'
+        var tagsHtml = post.tags && post.tags.length > 0
+            ? '<div class="post-tags">' + post.tags.map(function(t) { return '<span class="post-tag">' + UI.escapeHtml(t) + '</span>'; }).join('') + '</div>'
             : '';
 
-        // Anon reveal button
-        let anonRevealHtml = '';
+        var bodyHtml = '';
+        if (isImagePost) {
+            bodyHtml = '<div class="post-image-desc detail">'
+                + '<div class="image-desc-frame">'
+                + '<div class="image-desc-icon">\uD83D\uDDBC\uFE0F</div>'
+                + '<div class="image-desc-text">' + UI.escapeHtml(post.body) + '</div>'
+                + '</div></div>';
+        } else {
+            bodyHtml = '<div class="post-detail-body">' + UI.escapeHtml(post.body) + '</div>';
+        }
+
+        // Anon reveal
+        var anonRevealHtml = '';
         if (isAnon) {
-            const usedCount = Store.getAnonRevealCount();
-            const remaining = 3 - usedCount;
+            var usedCount = Store.getAnonRevealCount();
+            var remaining = 3 - usedCount;
             anonRevealHtml = '<div class="anon-reveal-btn' + (remaining <= 0 ? ' disabled' : '') + '" data-action="reveal-anon">'
                 + '\uD83D\uDD0D Reveal (' + remaining + '/3)'
                 + '</div>';
         }
 
         // Comments
-        let commentsHtml = '';
+        var commentsHtml = '';
         if (post.comments && post.comments.length > 0) {
-            commentsHtml = post.comments.map(c => {
-                const cIsAnon = c.isAnonymous;
-                const cName = cIsAnon ? '\u300E\u533F\u540D\u8005\u300F' : UI.escapeHtml(c.authorName || 'Anonymous');
-                const cAvatar = cIsAnon ? '\uD83C\uDFAD' : c.authorAvatar;
-                const cClass = 'comment-item' + (c.isReply ? ' reply' : '') + (cIsAnon ? ' anon-comment' : '');
+            commentsHtml = post.comments.map(function(c) {
+                var cIsAnon = c.isAnonymous;
+                var cName = cIsAnon ? '\u300E\u533F\u540D\u8005\u300F' : UI.escapeHtml(c.authorName || 'Anonymous');
+                var cAvatar = cIsAnon ? '\uD83C\uDFAD' : c.authorAvatar;
+                var cClass = 'comment-item' + (c.isReply ? ' reply' : '') + (cIsAnon ? ' anon-comment' : '');
+                var isImageComment = c.type === 'image_desc';
+
+                var cBodyHtml = '';
+                if (isImageComment) {
+                    cBodyHtml = '<div class="comment-image-desc">'
+                        + '<div class="image-desc-frame small">'
+                        + '<div class="image-desc-icon">\uD83D\uDDBC\uFE0F</div>'
+                        + '<div class="image-desc-text">' + UI.escapeHtml(c.body) + '</div>'
+                        + '</div></div>';
+                } else {
+                    cBodyHtml = '<div class="comment-body">' + UI.escapeHtml(c.body) + '</div>';
+                }
 
                 return '<div class="' + cClass + '">'
                     + '<div class="comment-header">'
@@ -219,9 +253,10 @@ const Forum = (() => {
                     +   '<span class="comment-author">' + cName + '</span>'
                     +   '<span class="comment-time">' + UI.formatTime(c.createdAt) + '</span>'
                     + '</div>'
-                    + '<div class="comment-body">' + UI.escapeHtml(c.body) + '</div>'
+                    + cBodyHtml
                     + '<div class="comment-actions">'
-                    +   '<span class="comment-action forward-action" data-action="forward-comment" data-comment-id="' + c.id + '">Forward</span>'
+                    +   '<span class="comment-action" data-action="reply-comment" data-author="' + cName + '">Reply</span>'
+                    +   '<span class="comment-action forward-action" data-action="forward-comment">Forward</span>'
                     + '</div>'
                     + '</div>';
             }).join('');
@@ -236,7 +271,7 @@ const Forum = (() => {
             +     '<span class="post-timestamp">' + UI.formatTime(post.createdAt) + '</span>'
             +   '</div>'
             +   '<div class="post-detail-title">' + UI.escapeHtml(post.title) + '</div>'
-            +   '<div class="post-detail-body">' + UI.escapeHtml(post.body) + '</div>'
+            +   bodyHtml
             +   tagsHtml
             +   '<div class="post-detail-footer">'
             +     '<div class="post-stat ' + (isUpvoted ? 'upvoted' : '') + '" data-action="upvote-detail">'
@@ -253,19 +288,28 @@ const Forum = (() => {
             + '</div>';
 
         // Bind events
-        container.querySelector('[data-action="upvote-detail"]')?.addEventListener('click', () => {
+        container.querySelector('[data-action="upvote-detail"]')?.addEventListener('click', function() {
             toggleUpvote(currentPostId);
             renderPostDetail();
         });
 
         container.querySelector('[data-action="reveal-anon"]')?.addEventListener('click', revealAnonymous);
 
-        container.querySelector('[data-action="summon"]')?.addEventListener('click', (e) => {
+        container.querySelector('[data-action="summon"]')?.addEventListener('click', function(e) {
             summonPassersby(e.currentTarget);
         });
 
-        container.querySelectorAll('[data-action="forward-comment"]').forEach(el => {
-            el.addEventListener('click', () => forwardPost(currentPostId));
+        container.querySelectorAll('[data-action="forward-comment"]').forEach(function(el) {
+            el.addEventListener('click', function() { forwardPost(currentPostId); });
+        });
+
+        container.querySelectorAll('[data-action="reply-comment"]').forEach(function(el) {
+            el.addEventListener('click', function() {
+                var authorName = el.dataset.author || '';
+                var input = document.getElementById('comment-input');
+                input.value = '@' + authorName + ' ';
+                input.focus();
+            });
         });
     }
 
@@ -273,12 +317,11 @@ const Forum = (() => {
     //  Upvote
     // ========================
     function toggleUpvote(postId) {
-        const post = Store.getPost(postId);
+        var post = Store.getPost(postId);
         if (!post) return;
-
         if (!post.upvotedBy) post.upvotedBy = [];
 
-        const idx = post.upvotedBy.indexOf('__user__');
+        var idx = post.upvotedBy.indexOf('__user__');
         if (idx >= 0) {
             post.upvotedBy.splice(idx, 1);
             post.upvotes = Math.max(0, (post.upvotes || 0) - 1);
@@ -296,14 +339,13 @@ const Forum = (() => {
     // ========================
     function submitComment() {
         if (!currentPostId) return;
-        const input = document.getElementById('comment-input');
-        const body = input.value.trim();
+        var input = document.getElementById('comment-input');
+        var body = input.value.trim();
         if (!body) return;
-
         input.value = '';
 
-        const settings = Store.getSettings();
-        const post = Store.getPost(currentPostId);
+        var settings = Store.getSettings();
+        var post = Store.getPost(currentPostId);
         if (!post) return;
 
         if (!post.comments) post.comments = [];
@@ -320,20 +362,18 @@ const Forum = (() => {
         renderPostDetail();
         renderPostList();
 
-        // Trigger AI reply
-        triggerCharReply(currentPostId);
+        // Trigger multiple AI replies
+        triggerCharReplies(currentPostId, body);
     }
 
     // ========================
     //  New Post Modal
     // ========================
     function showNewPostModal() {
-        let html = '<h3>\u26E7 New Post</h3>'
+        var html = '<h3>\u26E7 New Post</h3>'
             + '<div class="setting-item">'
             +   '<label>Board</label>'
-            +   '<div class="board-select-grid" id="modal-board-select">';
-
-        BOARDS.forEach(b => {
+            +   '<div class="board-select-grid" id="modal-board-select">';BOARDS.forEach(function(b) {
             if (b.id === 'all') return;
             html += '<div class="board-select-item" data-board="' + b.id + '">' + b.icon + ' ' + b.name + '</div>';
         });
@@ -357,6 +397,12 @@ const Forum = (() => {
             +     '<span class="anon-toggle-label">\uD83C\uDFAD Anonymous Post</span>'
             +   '</div>'
             + '</div>'
+            + '<div class="setting-item">'
+            +   '<div class="anon-toggle" id="image-toggle">'
+            +     '<div class="anon-toggle-track"></div>'
+            +     '<span class="anon-toggle-label">\uD83D\uDDBC\uFE0F Image Description Post</span>'
+            +   '</div>'
+            + '</div>'
             + '<div class="modal-btns">'
             +   '<button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>'
             +   '<button class="gothic-btn primary" id="btn-submit-post">Post</button>'
@@ -365,44 +411,45 @@ const Forum = (() => {
         UI.showModal(html);
 
         // Board selection
-        let selectedBoard = 'gossip';
-        const boardGrid = document.getElementById('modal-board-select');
-        // Select first by default
-        const firstBoardEl = boardGrid.querySelector('[data-board="' + selectedBoard + '"]');
+        var selectedBoard = 'gossip';
+        var boardGrid = document.getElementById('modal-board-select');
+        var firstBoardEl = boardGrid.querySelector('[data-board="gossip"]');
         if (firstBoardEl) firstBoardEl.classList.add('selected');
 
-        boardGrid.querySelectorAll('.board-select-item').forEach(el => {
-            el.addEventListener('click', () => {
-                boardGrid.querySelectorAll('.board-select-item').forEach(x => x.classList.remove('selected'));
+        boardGrid.querySelectorAll('.board-select-item').forEach(function(el) {
+            el.addEventListener('click', function() {
+                boardGrid.querySelectorAll('.board-select-item').forEach(function(x) { x.classList.remove('selected'); });
                 el.classList.add('selected');
                 selectedBoard = el.dataset.board;
             });
         });
 
-        // Anon toggle
-        let isAnon = false;
+        // Toggles
+        var isAnon = false;
+        var isImage = false;
         document.getElementById('anon-toggle').addEventListener('click', function() {
             isAnon = !isAnon;
             this.classList.toggle('on', isAnon);
         });
+        document.getElementById('image-toggle').addEventListener('click', function() {
+            isImage = !isImage;
+            this.classList.toggle('on', isImage);
+        });
 
         // Submit
-        document.getElementById('btn-submit-post').addEventListener('click', () => {
-            const title = document.getElementById('new-post-title').value.trim();
-            const body = document.getElementById('new-post-body').value.trim();
-            const tagsRaw = document.getElementById('new-post-tags').value.trim();
+        document.getElementById('btn-submit-post').addEventListener('click', function() {
+            var title = document.getElementById('new-post-title').value.trim();
+            var body = document.getElementById('new-post-body').value.trim();
+            var tagsRaw = document.getElementById('new-post-tags').value.trim();
 
-            if (!title) {
-                UI.toast('Title is required');
-                return;
-            }
+            if (!title) { UI.toast('Title is required'); return; }
 
-            const tags = tagsRaw
-                ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean).slice(0, 3)
+            var tags = tagsRaw
+                ? tagsRaw.split(',').map(function(t) { return t.trim(); }).filter(Boolean).slice(0, 3)
                 : [];
 
-            const settings = Store.getSettings();
-            const postData = {
+            var settings = Store.getSettings();
+            var postData = {
                 authorId: '__user__',
                 authorName: settings.username || 'User',
                 authorAvatar: settings.userAvatar || '\uD83D\uDE08',
@@ -410,7 +457,8 @@ const Forum = (() => {
                 body: body,
                 board: selectedBoard,
                 tags: tags,
-                isAnonymous: isAnon
+                isAnonymous: isAnon,
+                type: isImage ? 'image_desc' : 'text'
             };
 
             if (isAnon) {
@@ -427,14 +475,14 @@ const Forum = (() => {
     }
 
     // ========================
-    //  Post Menu (⋮)
+    //  Post Menu
     // ========================
     function showPostMenu() {
         if (!currentPostId) return;
-        const post = Store.getPost(currentPostId);
+        var post = Store.getPost(currentPostId);
         if (!post) return;
 
-        let html = '<h3>\u2726 Post Options</h3>'
+        var html = '<h3>\u2726 Post Options</h3>'
             + '<div style="display:flex;flex-direction:column;gap:8px;">'
             +   '<button class="gothic-btn full-width" id="menu-forward">\u21BB Forward This Post</button>';
 
@@ -447,12 +495,12 @@ const Forum = (() => {
 
         UI.showModal(html);
 
-        document.getElementById('menu-forward')?.addEventListener('click', () => {
+        document.getElementById('menu-forward')?.addEventListener('click', function() {
             UI.closeModal();
             forwardPost(currentPostId);
         });
 
-        document.getElementById('menu-delete')?.addEventListener('click', () => {
+        document.getElementById('menu-delete')?.addEventListener('click', function() {
             Store.deletePost(currentPostId);
             UI.closeModal();
             currentPostId = null;
@@ -466,24 +514,22 @@ const Forum = (() => {
     //  Forward Post
     // ========================
     function forwardPost(postId) {
-        const post = Store.getPost(postId);
+        var post = Store.getPost(postId);
         if (!post) return;
 
-        // Pick a random char or NPC to forward
-        const chars = Store.getChars().filter(c => c.id !== '__model__');
-        const npcPool = Store.getNpcPool();
-        const allCandidates = [];
+        var chars = Store.getChars().filter(function(c) { return c.id !== '__model__'; });
+        var npcPool = Store.getNpcPool();
+        var allCandidates = [];
 
-        chars.forEach(c => allCandidates.push({ id: c.id, name: c.name, avatar: c.avatar || '\uD83D\uDC64', type: 'char' }));
-        npcPool.forEach(n => allCandidates.push({ id: n.id, name: n.name, avatar: n.avatar || '\uD83D\uDC64', type: 'npc' }));
+        chars.forEach(function(c) { allCandidates.push({ id: c.id, name: c.name, avatar: c.avatar || '\uD83D\uDC64' }); });
+        npcPool.forEach(function(n) { allCandidates.push({ id: n.id, name: n.name, avatar: n.avatar || '\uD83D\uDC64' }); });
 
         if (allCandidates.length === 0) {
-            // Create a random NPC to forward
-            const npc = createRandomNpc();
-            allCandidates.push({ id: npc.id, name: npc.name, avatar: npc.avatar, type: 'npc' });
+            var npc = createRandomNpc();
+            allCandidates.push({ id: npc.id, name: npc.name, avatar: npc.avatar });
         }
 
-        const forwarder = allCandidates[Math.floor(Math.random() * allCandidates.length)];
+        var forwarder = allCandidates[Math.floor(Math.random() * allCandidates.length)];
 
         Store.addPost({
             authorId: forwarder.id,
@@ -494,29 +540,36 @@ const Forum = (() => {
             board: post.board || 'gossip',
             tags: post.tags || [],
             isForwarded: true,
-            forwardFrom: postId
+            forwardFrom: postId,
+            type: post.type || 'text'
         });
 
         renderPostList();
         UI.toast(forwarder.name + ' forwarded this post');
+
+        Store.addLog({
+            level: 'info',
+            source: 'forum',
+            message: forwarder.name + ' forwarded post: ' + post.title
+        });
     }
 
     // ========================
     //  Reveal Anonymous
     // ========================
     function revealAnonymous() {
-        const post = Store.getPost(currentPostId);
+        var post = Store.getPost(currentPostId);
         if (!post || !post.isAnonymous) return;
 
-        const canReveal = Store.useAnonReveal();
+        var canReveal = Store.useAnonReveal();
         if (!canReveal) {
             UI.toast('No reveals left today (3/3 used)');
             return;
         }
 
-        const realName = post.realAuthorName || 'Unknown';
-        const realAvatar = post.realAuthorAvatar || '\uD83D\uDC64';
-        const remaining = 3 - Store.getAnonRevealCount();
+        var realName = post.realAuthorName ||'Unknown';
+        var realAvatar = post.realAuthorAvatar || '\uD83D\uDC64';
+        var remaining = 3 - Store.getAnonRevealCount();
 
         UI.showModal(
             '<h3>\uD83D\uDD0D Identity Revealed</h3>'
@@ -532,11 +585,43 @@ const Forum = (() => {
     }
 
     // ========================
+    //  AI Reply to User Comment
+    // ========================
+    function triggerCharReplies(postId, userComment) {
+        var chars = Store.getChars().filter(function(c) { return c.id !== '__model__'; });
+        var npcPool = Store.getNpcPool();
+        var settings = Store.getSettings();
+        if (!settings.apiUrl || !settings.model) return;
+
+        var allActors = [];
+        chars.forEach(function(c) { allActors.push({ id: c.id, name: c.name, avatar: c.avatar || '\uD83D\uDC64', persona: c.persona || '' }); });
+        npcPool.forEach(function(n) { allActors.push({ id: n.id, name: n.name, avatar: n.avatar || '\uD83D\uDC64', persona: n.persona || '' }); });
+        if (allActors.length === 0) return;
+
+        //1-3 replies with staggered delays
+        var replyCount = 1+ Math.floor(Math.random() * 3);
+        var usedActors = [];
+
+        for (var i = 0; i < replyCount && i < allActors.length; i++) {
+            var available = allActors.filter(function(a) { return usedActors.indexOf(a.id) < 0; });
+            if (available.length === 0) break;
+            var actor = available[Math.floor(Math.random() * available.length)];
+            usedActors.push(actor.id);
+
+            (function(a, delay) {
+                setTimeout(function() {
+                    autoReplyToPost(postId, a, settings.forumPrompt || '', userComment);
+                }, delay);
+            })(actor, (3+ Math.random() * 8+ i * 5) * 1000);
+        }
+    }
+
+    // ========================
     //  Summon Passers-by
     // ========================
-    async function summonPassersby(btnEl) {
+    function summonPassersby(btnEl) {
         if (!currentPostId) return;
-        const settings = Store.getSettings();
+        var settings = Store.getSettings();
         if (!settings.apiUrl || !settings.model) {
             UI.toast('Configure API first');
             return;
@@ -545,71 +630,67 @@ const Forum = (() => {
         btnEl.classList.add('loading');
         btnEl.textContent = 'Summoning...';
 
-        const post = Store.getPost(currentPostId);
+        var post = Store.getPost(currentPostId);
         if (!post) { btnEl.classList.remove('loading'); return; }
 
-        try {
-            // Decide how many passers-by (1-3)
-            const count = 1 + Math.floor(Math.random() * 3);
-
-            // Get or create NPCs
-            const npcs = [];
-            for (let i = 0; i < count; i++) {
-                let npc = Store.getRandomNpc();
-                if (!npc || Math.random() > 0.6) {
-                    npc = createRandomNpc();
-                }
-                npcs.push(npc);
+        var count = 1+ Math.floor(Math.random() * 3);
+        var npcs = [];
+        for (var i = 0; i < count; i++) {
+            var npc = Store.getRandomNpc();
+            if (!npc || Math.random() > 0.6) {
+                npc = createRandomNpc();
             }
+            npcs.push(npc);
+        }
 
-            const existingComments = (post.comments || []).map(c =>
-                c.authorName +': ' + c.body
-            ).join('\n');
+        var existingComments = (post.comments || []).map(function(c) {
+            return c.authorName +': ' + c.body;
+        }).join('\n');
 
-            const forumPrompt = settings.forumPrompt || '';
-            const npcNames = npcs.map(n => n.name).join(', ');
+        var forumPrompt = settings.forumPrompt || '';
+        var npcNames = npcs.map(function(n) { return n.name; }).join(', ');
 
-            const prompt = 'You are generating forum comments from multiple passers-by on a dark gothic-themed forum.\n'
-                + (forumPrompt ? 'Forum rules: ' + forumPrompt + '\n' : '')
-                + 'The passers-by are: ' + npcNames + '\n'
-                + 'Each person should have a distinct voice and personality. Keep each reply brief (1-2 sentences).\n'
-                + 'Respond in JSON array format: [{"name":"...","body":"..."},...]';
+        var prompt = 'You are generating forum comments from multiple passers-by on a dark gothic-themed forum.\n'
+            + (forumPrompt ? 'Forum rules: ' + forumPrompt + '\n' : '')
+            + 'The passers-by are: ' + npcNames + '\n'
+            + 'Each person should have a distinct voice. Keep each reply brief (1-2 sentences).\n'
+            + 'Some replies may describe an image they want to share — if so, add "type":"image_desc" to that entry.\n'
+            + 'Respond in JSON array: [{"name":"...","body":"...","type":"text"},...]';
 
-            const context = 'Post title: ' + post.title + '\n'
-                + 'Post body: ' + post.body + '\n'
-                + (existingComments ? '\nExisting comments:\n' + existingComments : '')
-                + '\n\nGenerate ' + count + ' comments from: ' + npcNames;
+        var context = 'Post title: ' + post.title + '\n'
+            + 'Post body: ' + post.body + '\n'
+            + (existingComments ? '\nExisting comments:\n' + existingComments : '')
+            + '\n\nGenerate ' + count + ' comments from: ' + npcNames;
 
-            const reply = await AI.chat([
-                { role: 'system', content: prompt },
-                { role: 'user', content: context }
-            ], { temperature: 1.0, max_tokens: 400 });
-
+        AI.chat([
+            { role: 'system', content: prompt },
+            { role: 'user', content: context }
+        ], { temperature: 1.0, max_tokens: 400 }).then(function(reply) {
             if (!post.comments) post.comments = [];
 
             try {
-                const parsed = JSON.parse(reply.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+                var parsed = JSON.parse(reply.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
                 if (Array.isArray(parsed)) {
-                    parsed.forEach(item => {
-                        const matchNpc = npcs.find(n => n.name === item.name) || npcs[0];
+                    parsed.forEach(function(item) {
+                        var matchNpc = npcs.find(function(n) { return n.name === item.name; }) || npcs[0];
                         post.comments.push({
                             id: UI.genId('cmt'),
                             authorId: matchNpc.id,
                             authorName: matchNpc.name,
                             authorAvatar: matchNpc.avatar,
                             body: (item.body || item.content || '').trim(),
+                            type: item.type === 'image_desc' ? 'image_desc' : 'text',
                             createdAt: Date.now() + Math.floor(Math.random() * 5000)
                         });
                     });
                 }
-            } catch {
-                // Fallback: treat as single comment
-                const npc = npcs[0];
+            } catch (e) {
+                var npc0 = npcs[0];
                 post.comments.push({
                     id: UI.genId('cmt'),
-                    authorId: npc.id,
-                    authorName: npc.name,
-                    authorAvatar: npc.avatar,
+                    authorId: npc0.id,
+                    authorName: npc0.name,
+                    authorAvatar: npc0.avatar,
                     body: reply.trim().slice(0, 300),
                     createdAt: Date.now()
                 });
@@ -618,138 +699,230 @@ const Forum = (() => {
             Store.updatePost(currentPostId, { comments: post.comments });
             renderPostDetail();
             renderPostList();
-        } catch (e) {
-            console.error('Summon failed:', e);
-            UI.toast('Summoning failed...');
-        }
 
-        btnEl.classList.remove('loading');
-        btnEl.textContent = '\u2726 Summon Passers-by \u2726';
+            Store.addLog({
+                level: 'info',
+                source: 'forum-summon',
+                message: 'Summoned ' + npcs.length + ' passers-by for post: ' + post.title.slice(0, 40)
+            });
+        }).catch(function(e) {
+            Store.addLog({
+                level: 'error',
+                source: 'forum-summon',
+                message: 'Summon failed',
+                detail: e.message || String(e),
+                stack: e.stack || ''
+            });
+            UI.toast('Summoning failed...');
+        }).finally(function() {
+            btnEl.classList.remove('loading');
+            btnEl.textContent = '\u2726 Summon Passers-by \u2726';
+        });
     }
 
     // ========================
     //  NPC Creation
     // ========================
     function createRandomNpc() {
-        const name = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)]
+        var name = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)]
             + '_' + Math.floor(Math.random() * 999);
-        const avatar = NPC_AVATARS[Math.floor(Math.random() * NPC_AVATARS.length)];
+        var avatar = NPC_AVATARS[Math.floor(Math.random() * NPC_AVATARS.length)];
         return Store.addNpc({ name: name, avatar: avatar });
     }
 
-    async function aiCreateNpc() {
-        const settings = Store.getSettings();
-        if (!settings.apiUrl || !settings.model) return createRandomNpc();
+    function aiCreateNpc() {
+        var settings = Store.getSettings();
+        if (!settings.apiUrl || !settings.model) return Promise.resolve(createRandomNpc());
 
-        try {
-            const forumPrompt = settings.forumPrompt || '';
-            const prompt = 'Create a unique forum user for a dark gothic-themed forum.\n'
-                + (forumPrompt ? 'Forum vibe: ' + forumPrompt + '\n' : '')
-                + 'Respond in JSON: {"name":"...","avatar":"(single emoji)","persona":"(one sentence description)"}';
+        var forumPrompt = settings.forumPrompt || '';
+        var prompt = 'Create a unique forum user for a dark gothic-themed forum.\n'
+            + (forumPrompt ? 'Forum vibe: ' + forumPrompt + '\n' : '')
+            + 'Respond in JSON: {"name":"...","avatar":"(single emoji)","persona":"(one sentence)"}';
 
-            const reply = await AI.chat([
-                { role: 'system', content: prompt },
-                { role: 'user', content: 'Generate one new forum user.' }
-            ], { temperature: 1.2, max_tokens: 100 });
+        return AI.chat([
+            { role: 'system', content: prompt },
+            { role: 'user', content: 'Generate one new forum user.' }
+        ], { temperature: 1.2, max_tokens: 100 }).then(function(reply) {
+            try {
+                var parsed = JSON.parse(reply.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+                if (parsed.name) {
+                    return Store.addNpc({
+                        name: parsed.name,
+                        avatar: parsed.avatar || '\uD83D\uDC64',
+                        persona: parsed.persona || ''
+                    });
+                }
+            } catch (e) { /* fallback */ }
+            return createRandomNpc();
+        }).catch(function() {
+            return createRandomNpc();
+        });
+    }
 
-            const parsed = JSON.parse(reply.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
-            if (parsed.name) {
-                return Store.addNpc({
-                    name: parsed.name,
-                    avatar: parsed.avatar || '\uD83D\uDC64',
-                    persona: parsed.persona || ''
-                });
-            }
-        } catch {
-            // fallback
+    // ========================
+    //  Background Tasks
+    // ========================
+    function startBackgroundTasks() {
+        scheduleForumAction();
+        scheduleChatAction();
+    }
+
+    function stopBackgroundTasks() {
+        if (autoPostTimer) { clearTimeout(autoPostTimer); autoPostTimer = null; }
+        if (autoChatTimer) { clearTimeout(autoChatTimer); autoChatTimer = null; }
+    }
+
+    function restartBackgroundTasks() {
+        stopBackgroundTasks();
+        startBackgroundTasks();
+    }
+
+    // --- Forum auto-post/reply ---
+    function scheduleForumAction() {
+        var bgSettings = Store.getBgSettings();
+        if (!bgSettings.enabled) {
+            autoPostTimer = setTimeout(scheduleForumAction, 30000);
+            return;
         }
-        return createRandomNpc();
+
+        var interval = (bgSettings.forumPostInterval || 180) * 1000;
+        var jitter = interval * 0.3* (Math.random() - 0.5);
+
+        autoPostTimer = setTimeout(function() {
+            performForumAction().finally(scheduleForumAction);
+        }, interval + jitter);
     }
 
-    // ========================
-    //  AI Auto-posting
-    // ========================
-    function startAutoPosting() {
-        scheduleNextAutoAction();
-    }
+    function performForumAction() {
+        var bgSettings = Store.getBgSettings();
+        if (!bgSettings.enabled) return Promise.resolve();
 
-    function scheduleNextAutoAction() {
-        const delay = (120 + Math.random() * 180) * 1000; // 2-5 min
-        autoPostTimer = setTimeout(async () => {
-            await performAutoAction();
-            scheduleNextAutoAction();
-        }, delay);
-    }
+        var settings = Store.getSettings();
+        if (!settings.apiUrl || !settings.model) return Promise.resolve();
 
-    async function performAutoAction() {
-        const chars = Store.getChars().filter(c => c.id !== '__model__');
-        const settings = Store.getSettings();
-        if (!settings.apiUrl || !settings.model) return;
+        var postChance = (bgSettings.forumPostChance || 50) / 100;
+        if (Math.random() > postChance) {
+            Store.addLog({ level: 'info', source: 'forum-bg', message: 'Skipped (chance roll failed)' });
+            return Promise.resolve();
+        }
 
-        // Combine chars + NPCs as potential actors
-        const npcPool = Store.getNpcPool();
-        const allActors = [];
-        chars.forEach(c => allActors.push({ id: c.id, name: c.name, avatar: c.avatar || '\uD83D\uDC64', persona: c.persona || '', type: 'char' }));
-        npcPool.forEach(n => allActors.push({ id: n.id, name: n.name, avatar: n.avatar || '\uD83D\uDC64', persona: n.persona || '', type: 'npc' }));
+        var chars = Store.getChars().filter(function(c) { return c.id !== '__model__'; });
+        var npcPool = Store.getNpcPool();
+        var allActors = [];
+        chars.forEach(function(c) { allActors.push({ id: c.id, name: c.name, avatar: c.avatar || '\uD83D\uDC64', persona: c.persona || '' }); });
+        npcPool.forEach(function(n) { allActors.push({ id: n.id, name: n.name, avatar: n.avatar || '\uD83D\uDC64', persona: n.persona || '' }); });
 
         if (allActors.length === 0) {
-            // Create an NPC via AI
-            const npc = await aiCreateNpc();
-            allActors.push({ id: npc.id, name: npc.name, avatar: npc.avatar, persona: npc.persona || '', type: 'npc' });
+            return aiCreateNpc().then(function(npc) {
+                return autoCreatePost(npc, settings.forumPrompt || '');
+            });
         }
 
-        const actor = allActors[Math.floor(Math.random() * allActors.length)];
-        const posts = Store.getPosts();
-        const forumPrompt = settings.forumPrompt || '';
+        var actor = allActors[Math.floor(Math.random() * allActors.length)];
+        var posts = Store.getPosts();
+        var forumPrompt = settings.forumPrompt || '';
 
-        //40% create post, 40% reply, 20% create NPC + post
-        const roll = Math.random();
-
-        if (roll < 0.2&& npcPool.length < 30) {
-            // Create a new NPC then post
-            const npc = await aiCreateNpc();
-            await autoCreatePost(npc, forumPrompt);
-        } else if (posts.length === 0 || roll < 0.6) {
-            // Create a new post
-            await autoCreatePost(actor, forumPrompt);
+        var roll = Math.random();
+        if (roll < 0.15&& npcPool.length < 30) {
+            return aiCreateNpc().then(function(npc) {
+                return autoCreatePost(npc, forumPrompt);
+            });
+        } else if (posts.length === 0 || roll < 0.55) {
+            return autoCreatePost(actor, forumPrompt);
         } else {
-            // Reply to a random post
-            const randomPost = posts[Math.floor(Math.random() * posts.length)];
-            await autoReplyToPost(randomPost.id, actor, forumPrompt);
+            var replyChance = (bgSettings.forumReplyChance || 50) / 100;
+            if (Math.random() <= replyChance) {
+                var randomPost = posts[Math.floor(Math.random() * posts.length)];
+                return autoReplyToPost(randomPost.id, actor, forumPrompt, null);
+            }
+            return Promise.resolve();
         }
     }
 
-    async function autoCreatePost(actor, forumPrompt) {
-        try {
-            const randomBoard = BOARDS.filter(b => b.id !== 'all');
-            const board = randomBoard[Math.floor(Math.random() * randomBoard.length)];
+    // --- Chat auto-message ---
+    function scheduleChatAction() {
+        var bgSettings = Store.getBgSettings();
+        if (!bgSettings.enabled || !bgSettings.chatMessageEnabled) {
+            autoChatTimer = setTimeout(scheduleChatAction, 30000);
+            return;
+        }
 
-            const prompt = 'You are ' + actor.name + '. ' + (actor.persona || '') + '\n'
-                + (forumPrompt ? 'Forum rules: ' + forumPrompt + '\n' : '')
-                + 'You are posting in the "' + board.name + '" section of a dark gothic-themed forum.\n'
-                + 'Write a short forum post. Stay in character.\n'
-                + 'Respond in JSON: {"title":"...","body":"...","tags":["tag1","tag2"]}';
+        var interval = (bgSettings.chatMessageInterval || 300) * 1000;
+        var jitter = interval * 0.3 * (Math.random() - 0.5);
 
-            const reply = await AI.chat([
-                { role: 'system', content: prompt },
-                { role: 'user', content: 'Write a new forum post for the ' + board.name + ' board. Keep it brief and in character.' }
-            ], { temperature: 1.0, max_tokens: 300 });
+        autoChatTimer = setTimeout(function() {
+            performChatAction().finally(scheduleChatAction);
+        }, interval + jitter);
+    }
 
-            let title, body, tags = [];
+    function performChatAction() {
+        var bgSettings = Store.getBgSettings();
+        if (!bgSettings.enabled || !bgSettings.chatMessageEnabled) return Promise.resolve();
+
+        var settings = Store.getSettings();
+        if (!settings.apiUrl || !settings.model) return Promise.resolve();
+
+        var chatChance = (bgSettings.chatMessageChance || 30) / 100;
+        if (Math.random() > chatChance) {
+            Store.addLog({ level: 'info', source: 'chat-bg', message: 'Skipped (chance roll failed)' });
+            return Promise.resolve();
+        }
+
+        var chars = Store.getChars().filter(function(c) { return c.id !== '__model__'; });
+        if (chars.length === 0) return Promise.resolve();
+
+        var char = chars[Math.floor(Math.random() * chars.length)];
+
+        Store.addLog({
+            level: 'info',
+            source: 'chat-bg',
+            message: 'Triggering proactive message from ' + char.name
+        });
+
+        return Chat.sendBgMessage(char.id).catch(function(e) {
+            Store.addLog({
+                level: 'error',
+                source: 'chat-bg',
+                message: 'Proactive chat failed for ' + char.name,
+                detail: e.message || String(e),
+                stack: e.stack || ''
+            });
+        });
+    }
+
+    // ========================
+    //  Auto Create Post
+    // ========================
+    function autoCreatePost(actor, forumPrompt) {
+        var randomBoard = BOARDS.filter(function(b) { return b.id !=='all'; });
+        var board = randomBoard[Math.floor(Math.random() * randomBoard.length)];
+
+        var prompt = 'You are ' + actor.name + '. ' + (actor.persona || '') + '\n'
+            + (forumPrompt ? 'Forum rules: ' + forumPrompt + '\n' : '')
+            + 'You are posting in the "' + board.name + '" section of a dark gothic-themed forum.\n'
+            + 'Write a short forum post. Stay in character.\n'
+            + 'If you want to describe an image, set type to "image_desc".\n'
+            + 'Respond in JSON: {"title":"...","body":"...","tags":["tag1"],"type":"text or image_desc"}';
+
+        return AI.chat([
+            { role: 'system', content: prompt },
+            { role: 'user', content: 'Write a new forum post for the ' + board.name + ' board.' }
+        ], { temperature: 1.0, max_tokens: 300 }).then(function(reply) {
+            var title, body, tags = [], postType = 'text';
             try {
-                const parsed = JSON.parse(reply.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+                var parsed = JSON.parse(reply.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
                 title = parsed.title;
                 body = parsed.body;
                 tags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 3) : [];
-            } catch {
+                postType = parsed.type === 'image_desc' ? 'image_desc' : 'text';
+            } catch (e) {
                 title = actor.name + '\'s thoughts';
                 body = reply.slice(0, 500);
             }
 
             if (title && body) {
-                // Small chance of anonymous post
-                const isAnon = Math.random()< 0.15;
-                const postData = {
+                var isAnon = Math.random() < 0.15;
+                var postData = {
                     authorId: actor.id,
                     authorName: actor.name,
                     authorAvatar: actor.avatar,
@@ -757,7 +930,8 @@ const Forum = (() => {
                     body: body,
                     board: board.id,
                     tags: tags,
-                    isAnonymous: isAnon
+                    isAnonymous: isAnon,
+                    type: postType
                 };
                 if (isAnon) {
                     postData.realAuthorId = actor.id;
@@ -766,56 +940,79 @@ const Forum = (() => {
                 }
                 Store.addPost(postData);
 
+                Store.addLog({
+                    level: 'info',
+                    source: 'forum-bg',
+                    message: actor.name + ' posted: ' + title.slice(0, 50),
+                    detail: 'Board: ' + board.id + ' | Type: ' + postType + (isAnon ? ' | Anonymous' : '')
+                });
+
                 if (document.getElementById('page-forum-list').classList.contains('active')) {
                     renderPostList();
                 }
             }
-        } catch (e) {
-            console.error('Auto-post failed:', e);
-        }
+        }).catch(function(e) {
+            Store.addLog({
+                level: 'error',
+                source: 'forum-bg',
+                message: 'Auto-post failed for ' + actor.name,
+                detail: e.message || String(e),
+                stack: e.stack || ''
+            });
+        });
     }
 
-    async function autoReplyToPost(postId, actor, forumPrompt) {
-        const post = Store.getPost(postId);
-        if (!post) return;
+    // ========================
+    //  Auto Reply to Post
+    // ========================
+    function autoReplyToPost(postId, actor, forumPrompt, userComment) {
+        var post = Store.getPost(postId);
+        if (!post) return Promise.resolve();
 
-        try {
-            const existingComments = (post.comments || []).map(c =>
-                c.authorName + ': ' + c.body
-            ).join('\n');
+        var existingComments = (post.comments || []).map(function(c) {
+            return c.authorName + ': ' + c.body;
+        }).join('\n');
 
-            const prompt = 'You are ' + actor.name + '. ' + (actor.persona || '') + '\n'
-                + (forumPrompt ? 'Forum rules: ' + forumPrompt + '\n' : '')
-                + 'You are replying to a forum post on a dark gothic-themed forum. Stay in character. Keep your reply brief (1-3 sentences).';
+        var prompt = 'You are ' + actor.name + '. ' + (actor.persona || '') + '\n'
+            + (forumPrompt ? 'Forum rules: ' + forumPrompt + '\n' : '')
+            + 'You are replying to a forum post. Stay in character. Keep your reply brief (1-3 sentences).\n'
+            + 'If you want to describe an image in your reply, start with [IMAGE] then describe it.';
 
-            const context = 'Post title: ' + post.title + '\n'
-                + 'Post body: ' + post.body + '\n'
-                + (existingComments ? '\nExisting comments:\n' + existingComments : '')
-                + '\n\nWrite your reply:';
+        var context = 'Post title: ' + post.title + '\n'
+            + 'Post body: ' + post.body + '\n'
+            + (existingComments ? '\nExisting comments:\n' + existingComments : '');
 
-            const reply = await AI.chat([
-                { role: 'system', content: prompt },
-                { role: 'user', content: context }
-            ], { temperature: 0.9, max_tokens: 200 });
+        if (userComment) {
+            context += '\n\nThe user just commented: "' + userComment + '"\nReply to the user\'s comment specifically.';
+        } else {
+            context += '\n\nWrite your reply:';
+        }
 
+        return AI.chat([
+            { role: 'system', content: prompt },
+            { role: 'user', content: context }
+        ], { temperature: 0.9, max_tokens: 200 }).then(function(reply) {
             if (!post.comments) post.comments = [];
 
-            // Small chance the reply is anonymous
-            const isAnon = Math.random() < 0.1;
-            const comment = {
+            var replyText = reply.trim();
+            var commentType = 'text';
+            if (replyText.startsWith('[IMAGE]')) {
+                commentType = 'image_desc';replyText = replyText.replace(/^\[IMAGE\]\s*/i, '');
+            }
+
+            var isAnon = Math.random() < 0.1;
+            post.comments.push({
                 id: UI.genId('cmt'),
                 authorId: actor.id,
                 authorName: actor.name,
                 authorAvatar: actor.avatar,
-                body: reply.trim(),
+                body: replyText,
+                type: commentType,
                 createdAt: Date.now(),
                 isAnonymous: isAnon
-            };
+            });
 
-            post.comments.push(comment);
-            Store.updatePost(postId, { comments: post.comments });
-
-            // Maybe forward the post (10% chance)
+            //10% chance to forward
             if (Math.random() < 0.1) {
                 Store.addPost({
                     authorId: actor.id,
@@ -826,41 +1023,43 @@ const Forum = (() => {
                     board: post.board || 'gossip',
                     tags: post.tags || [],
                     isForwarded: true,
-                    forwardFrom: postId
+                    forwardFrom: postId,
+                    type: post.type || 'text'
                 });
             }
 
-            // Refresh views
+            Store.updatePost(postId, { comments: post.comments });
+
+            Store.addLog({
+                level: 'info',
+                source: 'forum-reply',
+                message: actor.name + ' replied to: ' + post.title.slice(0, 40),
+                detail: replyText.slice(0, 80)
+            });
+
             if (currentPostId === postId && document.getElementById('page-forum-post').classList.contains('active')) {
                 renderPostDetail();
             }
             if (document.getElementById('page-forum-list').classList.contains('active')) {
                 renderPostList();
             }
-        } catch (e) {
-            console.error('Auto-reply failed:', e);
-        }
+        }).catch(function(e) {
+            Store.addLog({
+                level: 'error',
+                source: 'forum-reply',
+                message: 'Reply failed for ' + actor.name,
+                detail: e.message || String(e),
+                stack: e.stack || ''
+            });
+        });
     }
 
-    // User-triggered char reply (after user comments)
-    async function triggerCharReply(postId) {
-        const chars = Store.getChars().filter(c => c.id !== '__model__');
-        const npcPool = Store.getNpcPool();
-        const settings = Store.getSettings();
-        if (!settings.apiUrl || !settings.model) return;
-
-        const allActors = [];
-        chars.forEach(c => allActors.push({ id: c.id, name: c.name, avatar: c.avatar || '\uD83D\uDC64', persona: c.persona || '' }));
-        npcPool.forEach(n => allActors.push({ id: n.id, name: n.name, avatar: n.avatar || '\uD83D\uDC64', persona: n.persona || '' }));
-
-        if (allActors.length === 0) return;
-
-        const delay = (5 + Math.random() * 10) * 1000;
-        setTimeout(async () => {
-            const actor = allActors[Math.floor(Math.random() * allActors.length)];
-            await autoReplyToPost(postId, actor, settings.forumPrompt || '');
-        }, delay);
-    }
-
-    return { init, renderPostList, openPost, renderTabBar };
+    return {
+        init: init,
+        renderPostList: renderPostList,
+        openPost: openPost,
+        renderTabBar: renderTabBar,
+        restartBackgroundTasks: restartBackgroundTasks
+    };
 })();
+

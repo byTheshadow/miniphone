@@ -159,6 +159,54 @@
     <div class="setting-item">
         <textarea id="setting-forum-prompt" rows="4" placeholder="e.g. This is a dark underground forum. All characters should speak in a mysterious tone..."></textarea>
     </div>
+    <div class="settings-section">
+    <h3>⚙ Background Tasks</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+        Control AI auto-posting in forum and proactive chat messages.
+    </p>
+    <div class="bg-settings-grid">
+        <div class="bg-setting-row">
+            <label>Enable Background Tasks</label>
+            <div class="anon-toggle" id="bg-enabled-toggle">
+                <div class="anon-toggle-track"></div>
+            </div>
+        </div>
+        <div class="bg-setting-row">
+            <label>Forum Post Interval (sec)</label>
+            <input type="number" id="bg-forum-interval" min="30" max="3600" value="180">
+        </div>
+        <div class="bg-setting-row">
+            <label>Forum Post Chance</label>
+            <input type="range" id="bg-forum-chance" min="0" max="100" value="50">
+            <span class="range-val" id="bg-forum-chance-val">50%</span>
+        </div>
+        <div class="bg-setting-row">
+            <label>Forum Reply Chance</label>
+            <input type="range" id="bg-reply-chance" min="0" max="100" value="50">
+            <span class="range-val" id="bg-reply-chance-val">50%</span>
+        </div>
+        <div class="bg-setting-row">
+            <label>Enable Chat Messages</label>
+            <div class="anon-toggle" id="bg-chat-toggle">
+                <div class="anon-toggle-track"></div>
+            </div>
+        </div>
+        <div class="bg-setting-row">
+            <label>Chat Message Interval (sec)</label>
+            <input type="number" id="bg-chat-interval" min="60" max="3600" value="300">
+        </div>
+        <div class="bg-setting-row">
+            <label>Chat Message Chance</label>
+            <input type="range" id="bg-chat-chance" min="0" max="100" value="30">
+            <span class="range-val" id="bg-chat-chance-val">30%</span>
+        </div></div>
+    <button class="gothic-btn full-width" id="btn-save-bg-settings" style="margin-top:12px;">Save Background Settings</button>
+</div>
+
+<div class="settings-section">
+    <h3>📋 Error Logs</h3>
+    <button id="btn-view-logs" class="gothic-btn full-width">View Logs</button>
+</div>
 </div>
                         <div class="settings-section">
     <h3>📚 Knowledge Books</h3>
@@ -182,6 +230,19 @@
                 </div>
             </div>
         </div>
+        <!-- 日志页面 -->
+<div class="page" id="page-logs">
+    <div class="page-header">
+        <button class="back-btn" data-back="settings">◁</button>
+        <h2>Logs</h2>
+        <button class="action-btn" id="btn-clear-logs">🗑</button>
+    </div>
+    <div class="page-body">
+        <div class="log-controls" id="log-controls"></div>
+        <div class="log-list" id="log-list"></div>
+    </div>
+</div>
+
 
         <!-- 底部导航 -->
         <div id="nav-bar">

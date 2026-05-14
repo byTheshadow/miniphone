@@ -539,4 +539,214 @@
     scrollbar-width: thin;
     scrollbar-color: rgba(80, 80, 80, 0.3) transparent;
 }
+/* ============================================
+   IMAGE DESCRIPTION POSTS & COMMENTS
+   ============================================ */
+.post-image-desc,
+.comment-image-desc {
+    margin: 8px 0;
+}
+.image-desc-frame {
+    background: rgba(15, 15, 15, 0.7);
+    border: 1px solid rgba(50, 50, 50, 0.4);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+}
+.image-desc-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(40, 40, 40, 0.15) 2px,
+            rgba(40, 40, 40, 0.15) 4px
+        );
+    pointer-events: none;
+    opacity: 0.5;
+}
+.image-desc-frame.small {
+    padding: 10px;
+}
+.image-desc-frame.small .image-desc-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+.image-desc-frame.small .image-desc-text {
+    font-size: 12px;
+}
+.image-desc-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    opacity: 0.6;
+    text-align: center;
+}
+.image-desc-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-style: italic;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.post-image-desc.detail .image-desc-frame {
+    padding: 20px;
+}
+.post-image-desc.detail .image-desc-text {
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+/* ============================================
+   ERROR LOG PAGE
+   ============================================ */
+.log-controls {
+    display: flex;
+    gap: 8px;
+    padding: 0 0 10px;align-items: center;
+}
+.log-controls .log-filter {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-family: var(--font-gothic);
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    background: rgba(20, 20, 20, 0.5);
+    border: 1px solid rgba(60, 60, 60, 0.25);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-transform: uppercase;
+}
+.log-controls .log-filter:hover {
+    color: var(--text-secondary);
+    border-color: rgba(90, 90, 90, 0.35);
+}
+.log-controls .log-filter.active {
+    color: var(--text-primary);
+    background: rgba(45, 45, 45, 0.6);
+    border-color: rgba(100, 100, 100, 0.4);
+}
+
+.log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.log-item {
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border: 1px solid rgba(50, 50, 50, 0.25);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.log-item:hover {
+    border-color: rgba(70, 70, 70, 0.35);
+}
+.log-item.level-error {
+    border-left: 3px solid rgba(139, 58, 58, 0.5);
+}
+.log-item.level-info {
+    border-left: 3px solid rgba(80, 80, 80, 0.4);
+}
+.log-item.level-warn {
+    border-left: 3px solid rgba(160, 130, 50, 0.4);
+}
+.log-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.log-level {
+    font-size: 9px;
+    font-family: var(--font-gothic);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 3px;
+}
+.log-level.error {
+    color: #c77;background: rgba(139, 58, 58, 0.2);
+}
+.log-level.info {
+    color: #999;
+    background: rgba(80, 80, 80, 0.2);
+}
+.log-level.warn {
+    color: #ca8;
+    background: rgba(160, 130, 50, 0.15);
+}
+.log-source {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+.log-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+.log-message {
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.log-detail {
+    display: none;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(50, 50, 50, 0.2);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+    white-space: pre-wrap;word-break: break-all;
+    max-height: 150px;
+    overflow-y: auto;
+}
+.log-item.expanded .log-detail {
+    display: block;
+}
+
+/* ============================================
+   BACKGROUND SETTINGS PANEL
+   ============================================ */
+.bg-settings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.bg-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.bg-setting-row label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex: 1;
+}
+.bg-setting-row input[type="number"] {
+    width: 70px;
+    text-align: center;
+    padding: 6px 8px;
+    font-size: 12px;
+}
+.bg-setting-row input[type="range"] {
+    width: 100px;
+    accent-color: var(--text-secondary);
+}
+.bg-setting-row .range-val {
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 30px;
+    text-align: right;
+}
 
