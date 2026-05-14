@@ -1,0 +1,430 @@
+/* ============================================================
+   phone-shell.css — 主屏幕布局、图标网格、Dock、状态栏
+   ============================================================ */
+
+/* [SCREEN-WRAPPER START] 全屏背景 */
+#screen-wrapper {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+/* [SCREEN-WRAPPER END] */
+
+/* ============================================================ */
+
+/* [WALLPAPER START] 壁纸层 */
+.wallpaper {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(80, 60, 180, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(30, 20, 100, 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(10, 5, 40, 1) 0%, #0a0a0f 100%);
+  background-size: cover;
+  background-position: center;
+  transition: background-image 0.6s ease;
+}
+
+/* 用户自定义壁纸时通过 style 覆盖 background-image */
+.wallpaper.has-image {
+  background-image: var(--wallpaper-url);
+  background-size: cover;
+  background-position: center;
+}
+/* [WALLPAPER END] */
+
+/* ============================================================ */
+
+/* [PHONE-FRAME START] 手机主屏幕框架 */
+#phone-frame {
+  position: relative;
+  width: min(390px, 100vw);
+  height: min(844px, 100dvh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* 在桌面端显示时加一点圆角和阴影 */
+  border-radius: clamp(0px, calc((100vw - 390px) * 0.5), 44px);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.8);
+}
+/* [PHONE-FRAME END] */
+
+/* ============================================================ */
+
+/* [STATUS-BAR START] 状态栏 */
+#status-bar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 4px;
+  height: 44px;
+  flex-shrink: 0;
+  color: var(--statusbar-text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+#status-time {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+#status-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.status-icon {
+  opacity: 0.85;
+}
+/* [STATUS-BAR END] */
+
+/* ============================================================ */
+
+/* [HOME-SCREEN START] 主屏幕区域 */
+#home-screen {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* [HOME-SCREEN END] */
+
+/* ============================================================ */
+
+/* [PAGE-DOTS START] 页面指示点 */
+#page-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 20;
+}
+
+.page-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transition: all 0.25s ease;
+}
+
+.page-dot.active {
+  width: 18px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.90);
+}
+/* [PAGE-DOTS END] */
+
+/* ============================================================ */
+
+/* [PAGES-CONTAINER START] 滑动页面容器 */
+#pages-container {
+  flex: 1;
+  display: flex;
+  /* 水平排列所有页面 */
+  flex-direction: row;
+  transition: transform 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+  /* 宽度由 JS 根据页数动态设置 */
+}
+
+/* 单个页面 */
+.home-page {
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  padding: 8px 16px 40px;
+  display: grid;
+  /* 4列图标网格 */
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: min-content;
+  gap: 16px 8px;
+  align-content: start;
+  overflow: hidden;
+}
+/* [PAGES-CONTAINER END] */
+
+/* ============================================================ */
+
+/* [APP-ICON START] App 图标 */
+.app-icon-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  /* 长按进入编辑模式 */
+  touch-action: manipulation;
+}
+
+.app-icon-wrapper:active .app-icon {
+  transform: scale(0.88);
+}
+
+.app-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: var(--glass-dark-bg);
+  border: 1px solid var(--glass-dark-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--icon-shadow);
+  transition: transform 0.15s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 图标内的图片（用户自定义 URL） */
+.app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 13px;
+}
+
+/* 图标名称 */
+.app-icon-label {
+  font-size: 10px;
+  color: var(--text-primary);
+  text-align: center;
+  max-width: 64px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+/* 编辑模式抖动 */
+.app-icon-wrapper.wiggle .app-icon {
+  animation: iconWiggle 0.5s ease infinite;
+}
+
+/* 编辑模式删除按钮 */
+.app-icon-delete {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-danger);
+  color: #fff;
+  font-size: 12px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.app-icon-wrapper.wiggle .app-icon-delete {
+  display: flex;
+}
+/* [APP-ICON END] */
+
+/* ============================================================ */
+
+/* [WIDGET-SLOT START] 小组件占位（跨列） */
+/* 1×1 = 1列1行（默认图标大小） */
+.widget-1x1 {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+/* 2×1 = 2列1行 */
+.widget-2x1 {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+/* 2×2 = 2列2行 */
+.widget-2x2 {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* 4×1 = 全宽1行 */
+.widget-4x1 {
+  grid-column: span 4;
+  grid-row: span 1;
+}
+
+/* 4×2 = 全宽2行 */
+.widget-4x2 {
+  grid-column: span 4;
+  grid-row: span 2;
+}
+
+/* 小组件基础样式 */
+.widget {
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.widget:active {
+  transform: scale(0.97);
+}
+
+/* 小组件编辑模式抖动 */
+.widget.wiggle {
+  animation: iconWiggle 0.5s ease infinite;
+}
+/* [WIDGET-SLOT END] */
+
+/* ============================================================ */
+
+/* [DOCK START] 底部 Dock 栏 */
+#dock {
+  position: relative;
+  flex-shrink: 0;
+  height: 88px;
+  padding: 10px 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Dock 毛玻璃背景 */
+#dock-glass {
+  position: absolute;
+  inset: 6px 12px 8px;
+  border-radius: 26px;
+  background: var(--dock-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-dark-border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+#dock-icons {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Dock 图标略大 */
+#dock-icons .app-icon {
+  width: 56px;
+  height: 56px;
+  font-size: 28px;
+}
+
+#dock-icons .app-icon-label {
+  display: none; /* Dock 不显示标签 */
+}
+/* [DOCK END] */
+
+/* ============================================================ */
+
+/* [APP-LAYER START] App 全屏覆盖层 */
+#app-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  animation: slideInRight 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+#app-layer.closing {
+  animation: slideOutRight 0.28s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+/* App 内部状态栏 */
+#app-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 8px;
+  height: 52px;
+  flex-shrink: 0;
+  background: var(--glass-dark-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#app-back-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--glass-light-bg);
+  color: var(--text-primary);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+#app-back-btn:hover {
+  background: var(--glass-dark-border);
+}
+
+#app-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+#app-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+/* [APP-LAYER END] */
+
+/* ============================================================ */
+
+/* [SETTINGS-PANEL START] 设置面板 */
+#settings-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg-secondary);
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  overflow-y: auto;
+}
+
+#settings-panel.panel-open {
+  transform: translateX(0);
+}
+
+#settings-panel.panel-hidden {
+  transform: translateX(100%);
+}
+/* [SETTINGS-PANEL END] */
+
+/* ============================================================
+   phone-shell.css END
+   ============================================================ */
