@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/chat.css">
     <link rel="stylesheet" href="css/forum.css">
+    <link rel="stylesheet" href="css/diary.css">
 </head>
 <body>
     <div id="phone-container">
@@ -43,6 +44,10 @@
                         <div class="app-icon">⛧</div>
                         <span>Forum</span>
                     </div>
+                    <div class="app-icon" data-page="diary">
+  <div class="app-icon-img">📅</div>
+  <div class="app-icon-label">Diary</div>
+</div>
                     <div class="home-app" data-page="settings">
                         <div class="app-icon">⚙️</div>
                         <span>Settings</span>
@@ -50,6 +55,16 @@
                 </div>
                 <div class="home-clock" id="home-clock"></div>
             </div>
+            <!-- Diary Page -->
+<div class="page" id="page-diary">
+  <div class="page-header">
+    <button class="back-btn" onclick="App.navigateTo('home', true)">◀</button>
+    <h2class="page-title">Diary</h2>
+    <button class="diary-settings-btn" id="diary-settings-btn">⚙</button>
+  </div><div class="diary-scroll" id="diary-content">
+    <!-- Rendered by diary.js -->
+  </div>
+</div>
 
             <!-- 聊天列表 -->
             <div class="page" id="page-chat-list">
@@ -225,6 +240,29 @@
                             <input type="file" id="file-import-char" accept=".json" hidden>
                             <input type="file" id="file-import-data" accept=".json" hidden>
                         </div>
+                        <!-- Data Management Section -->
+<div class="settings-section">
+  <h3 class="settings-section-title">☠ Data Management</h3>
+  <div class="settings-group" style="display:flex;flex-direction:column;gap:8px;">
+    <button class="settings-btn" id="btn-clear-chat" style="text-align:left;padding:12px 16px;">🗨️ Clear Chat Data<span style="float:right;font-size:11px;color:var(--text-muted);">Messages & Conversations</span>
+    </button>
+    <button class="settings-btn" id="btn-clear-forum" style="text-align:left;padding:12px 16px;">
+      📋 Clear Forum Data
+      <span style="float:right;font-size:11px;color:var(--text-muted);">Posts & NPCs</span>
+    </button>
+    <button class="settings-btn" id="btn-clear-diary" style="text-align:left;padding:12px 16px;">
+      📅 Clear Diary Data
+      <span style="float:right;font-size:11px;color:var(--text-muted);">Entries & Settings</span>
+    </button><button class="settings-btn" id="btn-clear-npc" style="text-align:left;padding:12px 16px;">
+      👻 Clear NPC Pool
+      <span style="float:right;font-size:11px;color:var(--text-muted);">Forum NPCs only</span>
+    </button><div style="border-top:1px solid var(--border-color);margin:8px 0;"></div>
+    <button class="settings-btn" id="btn-clear-all" style="text-align:left;padding:12px 16px;border-color:rgba(139,58,58,0.4);color:#c47070;">
+      ☠ Clear ALL Data
+      <span style="float:right;font-size:11px;color:rgba(139,58,58,0.6);">Everything — irreversible</span>
+    </button>
+  </div>
+</div>
                     </div>
                 <button id="btn-save-settings" class="gothic-btn primary full-width">Save Settings</button>
                 </div>
@@ -276,6 +314,7 @@
     <script src="js/ai.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/forum.js"></script>
+    <script src="js/diary.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

@@ -7,6 +7,8 @@ var App = (function() {
 
         Chat.init();
         Forum.init();
+        Diary.init();
+
 
         bindNavigation();
         bindSettings();
@@ -16,6 +18,8 @@ var App = (function() {
         loadSettings();
         loadBgSettings();
         registerSW();
+        bindClearButtons();
+
     }
 
     function updateClock() {
@@ -69,6 +73,7 @@ var App = (function() {
         if (pageId === 'chat-list') Chat.renderContactList();
         if (pageId === 'forum-list') Forum.renderPostList();
         if (pageId === 'logs') renderLogs();
+        
 
         if (prevPage) {
             prevPage.classList.remove('active');
@@ -76,6 +81,8 @@ var App = (function() {
                 prevPage.classList.add('slide-out-left');
                 setTimeout(function() { prevPage.classList.remove('slide-out-left'); }, 350);
             }
+            if (pageId === 'diary') {Diary.render();
+}
         }
 
         nextPage.classList.add('active');
@@ -87,7 +94,8 @@ var App = (function() {
             'forum-list': 'forum-list',
             'forum-post': 'forum-list',
             'settings': 'settings',
-            'logs': 'settings'
+            'logs': 'settings',
+            'diary': 'home'// diary 页面时，nav bar 高亮 home
         };
         document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
         var activeNav = document.querySelector('.nav-item[data-page="' + (navMap[pageId] || pageId) + '"]');
@@ -551,6 +559,76 @@ var App = (function() {
             select.innerHTML = '<option value="' + settings.model + '" selected>' + settings.model + '</option>';
         }
     }
+        // ── Data Clear Buttons ────────────────────────────────────────
+
+    function bindClearButtons() {
+        var clearMap = [
+            { id: 'btn-clear-chat', label: 'Chat Data', fn: function() { Store.clearChatData(); Chat.init(); } },
+            { id: 'btn-clear-forum', label: 'Forum Data', fn: function() { Store.clearForumData(); Forum.renderPostList(); } },
+            { id: 'btn-clear-diary', label: 'Diary Data', fn: function() { Store.clearDiaryData(); Diary.render(); } },
+            { id: 'btn-clear-npc', label: 'NPC Pool', fn: function() { Store.clearNpcPool(); } }
+        ];
+
+        clearMap.forEach(function(item) {
+            var btn = document.getElementById(item.id);
+            if (btn) {
+                btn.onclick = function() {
+                    UI.showModal(
+                        '<p style="margin-bottom:16px;color:var(--text-secondary);">Clear all<strong>' + item.label + '</strong>? This cannot be undone.</p>'+ '<div style="display:flex;gap:8px;">'
+                        + '<button id="confirm-clear-yes" style="flex:1;padding:10px;background:rgba(139,58,58,0.3);border:1px solid rgba(139,58,58,0.5);border-radius:var(--radius-sm);color:#e0d8e8;cursor:pointer;">Confirm</button>'
+                        + '<button id="confirm-clear-no" style="flex:1;padding:10px;background:rgba(255,255,255,0.05);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:#e0d8e8;cursor:pointer;">Cancel</button>'
+                        + '</div>',
+                        'Confirm Clear'
+                    );
+                    setTimeout(function() {
+                        var yesBtn = document.getElementById('confirm-clear-yes');
+                        var noBtn = document.getElementById('confirm-clear-no');
+                        if (yesBtn) yesBtn.onclick = function() { item.fn(); UI.closeModal(); UI.toast(item.label + ' cleared'); };
+                        if (noBtn) noBtn.onclick = function() { UI.closeModal(); };
+                    }, 50);
+                };
+            }
+        });
+
+        // Clear ALL — double confirm with typing
+        var clearAllBtn = document.getElementById('btn-clear-all');
+        if (clearAllBtn) {
+            clearAllBtn.onclick = function() {
+                UI.showModal(
+                    '<p style="margin-bottom:12px;color:#c47070;font-weight:bold;">\u26A0 DANGER ZONE</p>'
+                    + '<p style="margin-bottom:16px;color:var(--text-secondary);">This will permanently delete <strong>ALL</strong> data: chats, forum posts, diary entries, characters, settings \u2014 everything. The page will reload after clearing.</p>'
+                    + '<p style="margin-bottom:16px;color:var(--text-muted);font-size:12px;">Type "DELETE" to confirm:</p>'
+                    + '<input type="text" id="confirm-delete-input" placeholder="Type DELETE here" '
+                    + 'style="width:100%;margin-bottom:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(139,58,58,0.4);'
+                    + 'border-radius:var(--radius-sm);color:var(--text-primary);padding:10px 12px;font-size:14px;outline:none;text-align:center;box-sizing:border-box;" />'
+                    + '<div style="display:flex;gap:8px;">'
+                    + '<button id="confirm-delete-yes" style="flex:1;padding:10px;background:rgba(139,58,58,0.4);border:1px solid rgba(139,58,58,0.6);border-radius:var(--radius-sm);color:#e0d8e8;cursor:pointer;">Delete Everything</button>'
+                    + '<button id="confirm-delete-no" style="flex:1;padding:10px;background:rgba(255,255,255,0.05);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:#e0d8e8;cursor:pointer;">Cancel</button>'
+                    + '</div>',
+                    '\u2620Clear ALL Data'
+                );
+                setTimeout(function() {
+                    var yesBtn = document.getElementById('confirm-delete-yes');
+                    var noBtn = document.getElementById('confirm-delete-no');
+                    if (yesBtn) {
+                        yesBtn.onclick = function() {
+                            var input = document.getElementById('confirm-delete-input');
+                            if (input && input.value.trim() === 'DELETE') {
+                                Store.clearAllData();
+                                UI.closeModal();
+                                UI.toast('All data cleared. Reloading...');
+                                setTimeout(function() { window.location.reload(); }, 1000);
+                            } else {
+                                UI.toast('Please type DELETE to confirm');
+                            }
+                        };
+                    }
+                    if (noBtn) noBtn.onclick = function() { UI.closeModal(); };
+                }, 50);
+            };
+        }
+    }
+
 
     return { init: init, navigateTo: navigateTo };
 })();

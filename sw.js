@@ -1,4 +1,4 @@
-const CACHE_NAME = 'miniphone-v2';
+const CACHE_NAME = 'miniphone-v3';
 const ASSETS = [
     '/miniphone/',
     '/miniphone/index.html',
@@ -7,11 +7,13 @@ const ASSETS = [
     '/miniphone/css/layout.css',
     '/miniphone/css/chat.css',
     '/miniphone/css/forum.css',
+    '/miniphone/css/diary.css',
     '/miniphone/js/store.js',
     '/miniphone/js/ui.js',
     '/miniphone/js/ai.js',
     '/miniphone/js/chat.js',
     '/miniphone/js/forum.js',
+    '/miniphone/js/diary.js',
     '/miniphone/js/app.js'
 ];
 
@@ -33,15 +35,12 @@ self.addEventListener('activate', e => {
 
 // Network first, fallback to cache
 self.addEventListener('fetch', e => {
-    // Never intercept API calls
     if (e.request.url.includes('/v1/')) return;
-    // Never intercept cross-origin requests
     if (!e.request.url.startsWith(self.location.origin)) return;
 
     e.respondWith(
         fetch(e.request)
             .then(res => {
-                // Cache successful GET responses
                 if (e.request.method === 'GET' && res.status === 200) {
                     const clone = res.clone();
                     caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
@@ -51,5 +50,6 @@ self.addEventListener('fetch', e => {
             .catch(() => caches.match(e.request))
     );
 });
+
 
 

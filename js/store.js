@@ -348,6 +348,98 @@ function getBgSettings() {
 function saveBgSettings(s) {
     set('bg_settings', s);
 }
+// --- Diary Entries ---
+function getDiaryEntries() {
+    return get('diary_entries', {});
+}
+function saveDiaryEntries(obj) {
+    set('diary_entries', obj);
+}
+function getDiaryDay(dateStr) {
+    const entries = get('diary_entries', {});
+    return entries[dateStr] || { stickers: [], note: '', aiMessages: [] };
+}
+function saveDiaryDay(dateStr, dayData) {
+    const entries = get('diary_entries', {});
+    entries[dateStr] = dayData;
+    set('diary_entries', entries);
+}
+function addDiarySticker(dateStr, sticker) {
+    const entries = get('diary_entries', {});
+    if (!entries[dateStr]) entries[dateStr] = { stickers: [], note: '', aiMessages: [] };
+    entries[dateStr].stickers.push(sticker);
+    set('diary_entries', entries);
+}
+function removeDiarySticker(dateStr, index) {
+    const entries = get('diary_entries', {});
+    if (entries[dateStr]?.stickers) {
+        entries[dateStr].stickers.splice(index, 1);
+        set('diary_entries', entries);
+    }
+}
+function saveDiaryNote(dateStr, note) {
+    const entries = get('diary_entries', {});
+    if (!entries[dateStr]) entries[dateStr] = { stickers: [], note: '', aiMessages: [] };
+    entries[dateStr].note = note;
+    set('diary_entries', entries);
+}
+function addDiaryAiMessage(dateStr, msgObj) {
+    const entries = get('diary_entries', {});
+    if (!entries[dateStr]) entries[dateStr] = { stickers: [], note: '', aiMessages: [] };
+    entries[dateStr].aiMessages.push(msgObj);
+    set('diary_entries', entries);
+}
+
+// --- Diary Settings ---
+function getDiarySettings() {
+    return get('diary_settings', {
+        companionCharId: null,
+        bgEnabled: false,
+        bgInterval: 3600,
+        bgChance: 40
+    });
+}
+function saveDiarySettings(obj) {
+    set('diary_settings', obj);
+}
+
+// --- Data Clearing ---
+function clearChatData() {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('mp_messages_') || k.startsWith('mp_summary_'))) {
+            keys.push(k);
+        }
+    }
+    keys.forEach(k => localStorage.removeItem(k));
+    set('conversations', []);
+}
+function clearForumData() {
+    set('forum_posts', []);
+    set('npc_pool', []);
+}
+function clearDiaryData() {
+    set('diary_entries', {});
+    set('diary_settings', {
+        companionCharId: null,
+        bgEnabled: false,
+        bgInterval: 3600,
+        bgChance: 40
+    });
+}
+function clearNpcPool() {
+    set('npc_pool', []);
+}
+function clearAllData() {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('mp_')) keys.push(k);
+    }
+    keys.forEach(k => localStorage.removeItem(k));
+}
+
 
 
 
@@ -363,7 +455,11 @@ function saveBgSettings(s) {
         getKnowledgeBooks, saveKnowledgeBooks, addKnowledgeBook,
         getKnowledgeBook, updateKnowledgeBook, deleteKnowledgeBook,
         exportAll, importAll, getNpcPool, saveNpcPool, addNpc, getRandomNpc,getAnonReveals, useAnonReveal, getAnonRevealCount,getLogs, saveLogs, addLog, clearLogs,
-getBgSettings, saveBgSettings,
+getBgSettings, saveBgSettings,getDiaryEntries, saveDiaryEntries, getDiaryDay, saveDiaryDay,
+addDiarySticker, removeDiarySticker, saveDiaryNote, addDiaryAiMessage,
+getDiarySettings, saveDiarySettings,
+clearChatData, clearForumData, clearDiaryData, clearNpcPool, clearAllData,
+
 
     };
 })();
