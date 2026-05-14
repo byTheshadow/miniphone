@@ -665,7 +665,7 @@ var Forum = (function() {
         AI.chat([
             { role: 'system', content: prompt },
             { role: 'user', content: context }
-        ], { temperature: 1.0, max_tokens: 400 }).then(function(reply) {
+        ], { temperature: 1.0, max_tokens: 12800 }).then(function(reply) {
             if (!post.comments) post.comments = [];
 
             try {
@@ -907,7 +907,7 @@ var Forum = (function() {
         return AI.chat([
             { role: 'system', content: prompt },
             { role: 'user', content: 'Write a new forum post for the ' + board.name + ' board.' }
-        ], { temperature: 1.0, max_tokens: 300 }).then(function(reply) {
+        ], { temperature: 1.0, max_tokens: 12800 }).then(function(reply) {
             var title, body, tags = [], postType = 'text';
             try {
                 var parsed = JSON.parse(reply.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
@@ -991,7 +991,7 @@ var Forum = (function() {
         return AI.chat([
             { role: 'system', content: prompt },
             { role: 'user', content: context }
-        ], { temperature: 0.9, max_tokens: 200 }).then(function(reply) {
+        ], { temperature: 0.9, max_tokens: 128000 }).then(function(reply) {
             if (!post.comments) post.comments = [];
 
             var replyText = reply.trim();
