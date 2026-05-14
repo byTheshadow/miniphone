@@ -107,7 +107,7 @@ const App = (() => {
                 select.innerHTML = models.map(m =>
                     `<option value="${m}" ${m === settings.model ? 'selected' : ''}>${m}</option>`
                 ).join('');
-                UI.toast('Found ' + models.length + ' models \u2726');
+                UI.toast('Found ' + models.length + ' models ✦');
             } catch (e) {
                 UI.toast('Error: ' + e.message);
             }
@@ -119,12 +119,12 @@ const App = (() => {
                 apiKey: document.getElementById('setting-api-key').value.trim(),
                 model: document.getElementById('setting-model').value,
                 username: document.getElementById('setting-username').value.trim() || 'User',
-                userAvatar: document.getElementById('setting-user-avatar').value.trim() || '\uD83D\uDE08',
+                userAvatar: document.getElementById('setting-user-avatar').value.trim() || '😈',
                 persona: document.getElementById('setting-persona').value.trim(),
                 summaryPrompt: document.getElementById('setting-summary-prompt').value.trim()
             };
             Store.saveSettings(settings);
-            UI.toast('Settings saved \u2726');
+            UI.toast('Settings saved ✦');
         });
 
         document.getElementById('btn-import-char').addEventListener('click', () => {
@@ -196,7 +196,7 @@ const App = (() => {
             char.firstMessage = d.first_mes || '';
             var rawAvatar1 = data.avatar || d.avatar || '';
             char.avatar = (rawAvatar1.startsWith('data:') || rawAvatar1.startsWith('http'))
-                ? rawAvatar1 : '\uD83D\uDC64';
+                ? rawAvatar1 : '👤';
         } else {
             char.name = data.name || data.char_name || 'Unknown';
             char.persona = data.description || data.personality || data.persona || '';
@@ -204,7 +204,7 @@ const App = (() => {
             char.firstMessage = data.first_mes || data.greeting || '';
             var rawAvatar2 = data.avatar || '';
             char.avatar = (rawAvatar2.startsWith('data:') || rawAvatar2.startsWith('http'))
-                ? rawAvatar2 : '\uD83D\uDC64';
+                ? rawAvatar2 : '👤';
         }
 
         if (!char.name || char.name === 'Unknown') {
@@ -230,7 +230,7 @@ const App = (() => {
             });
         }
 
-        UI.toast('Imported: ' + newChar.name + ' \u2726');
+        UI.toast('Imported: ' + newChar.name + ' ✦');
     }
 
     // ── Knowledge Books UI ────────────────────────────────────────
@@ -254,15 +254,15 @@ const App = (() => {
         } else {
             booksHtml = books.map(function(b) {
                 var scopeLabel = b.global
-                    ? '\uD83C\uDF10 Global'
-                    : '\uD83D\uDC64 ' + ((Store.getChar(b.charId) || {}).name || 'Unknown char');
+                    ? '🌐 Global'
+                    : '👤 ' + ((Store.getChar(b.charId) || {}).name || 'Unknown char');
                 var entryCount = (b.entries || []).length;
                 return '<div class="kb-item" style="padding:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;margin-bottom:8px;">'
                     + '<div style="display:flex;align-items:center;justify-content:space-between;">'
                     + '<div>'
                     + '<div style="font-size:13px;font-weight:500;">' + UI.escapeHtml(b.name) + '</div>'
                     + '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'
-                    + UI.escapeHtml(scopeLabel) + ' \u00b7 ' + entryCount + ' entries'
+                    + UI.escapeHtml(scopeLabel) + ' · ' + entryCount + ' entries'
                     + '</div>'
                     + '</div>'
                     + '<div style="display:flex;gap:6px;">'
@@ -283,7 +283,7 @@ const App = (() => {
             : '';
 
         UI.showModal(
-            '<h3>\uD83D\uDCDA Knowledge Books</h3>'
+            '<h3>📚 Knowledge Books</h3>'
             + '<div style="max-height:240px;overflow-y:auto;margin-bottom:12px;">'
             + booksHtml
             + '</div>'
@@ -292,7 +292,7 @@ const App = (() => {
             + '<input type="text" id="kb-new-name" placeholder="e.g. World Lore"></div>'
             + '<div class="setting-item"><label>Scope</label>'
             + '<select id="kb-new-scope">'
-            + '<option value="global">\uD83C\uDF10 Global (all chats)</option>'
+            + '<option value="global">🌐 Global (all chats)</option>'
             + optgroupHtml
             + '</select></div>'
             + '</div>'
@@ -340,20 +340,20 @@ const App = (() => {
                 + '<input type="text" class="kb-entry-keyword" value="' + UI.escapeHtml(entry.keyword || '') + '" placeholder="Keyword (optional)" style="font-size:12px;">'
                 + '<textarea class="kb-entry-content" rows="2" style="font-size:12px;">' + UI.escapeHtml(entry.content || '') + '</textarea>'
                 + '</div>'
-                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">\u2715</button>'
+                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">✕</button>'
                 + '</div>';
         }).join('');
 
         var emptyMsg = '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px;">No entries yet</p>';
 
         UI.showModal(
-            '<h3>\u270e Edit: ' + UI.escapeHtml(book.name) + '</h3>'
+            '<h3>✎ Edit: ' + UI.escapeHtml(book.name) + '</h3>'
             + '<div id="kb-entries-list" style="max-height:300px;overflow-y:auto;margin-bottom:10px;">'
             + (entriesHtml || emptyMsg)
             + '</div>'
-            + '<button class="gothic-btn full-width" id="btn-kb-add-entry" style="margin-bottom:12px;">\uff0b Add Entry</button>'
+            + '<button class="gothic-btn full-width" id="btn-kb-add-entry" style="margin-bottom:12px;">＋ Add Entry</button>'
             + '<div class="modal-btns">'
-            + '<button class="gothic-btn" id="btn-kb-back">\u2190 Back</button>'
+            + '<button class="gothic-btn" id="btn-kb-back">← Back</button>'
             + '<button class="gothic-btn primary" id="btn-kb-save">Save</button>'
             + '</div>'
         );
@@ -371,7 +371,7 @@ const App = (() => {
                 + '<input type="text" class="kb-entry-keyword" placeholder="Keyword (optional)" style="font-size:12px;">'
                 + '<textarea class="kb-entry-content" rows="2" style="font-size:12px;"></textarea>'
                 + '</div>'
-                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">\u2715</button>';
+                + '<button class="small-btn kb-entry-del" data-idx="' + idx + '" style="border-color:var(--accent-red);flex-shrink:0;margin-top:2px;">✕</button>';
             list.appendChild(div);
             bindEntryDeleteBtns();
         });
@@ -388,7 +388,7 @@ const App = (() => {
                 if (content) entries.push({ keyword: keyword, content: content });
             });
             Store.updateKnowledgeBook(bookId, { entries: entries });
-            UI.toast('Knowledge book saved \u2726');
+            UI.toast('Knowledge book saved ✦');
             renderKBList();
         });
     }
