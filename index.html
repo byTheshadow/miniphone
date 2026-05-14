@@ -1,143 +1,203 @@
-<!-- ============================================================
-     index.html — MiniPhone 主入口
-     职责：加载所有资源、提供手机主屏幕容器骨架
-     ============================================================ -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <!-- [HEAD START] 元信息 & 资源引入 -->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0a0a0f" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>MiniPhone</title>
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- 全局样式 -->
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/phone-shell.css" />
-  <link rel="stylesheet" href="css/widgets.css" />
-  <link rel="stylesheet" href="css/apps.css" />
-  <!-- [HEAD END] -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>MiniPhone</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/forum.css">
 </head>
-<body class="theme-dark">
-
-  <!-- [SCREEN-WRAPPER START] 全屏背景容器 -->
-  <div id="screen-wrapper">
-
-    <!-- [WALLPAPER START] 壁纸层 -->
-    <div id="wallpaper" class="wallpaper"></div>
-    <!-- [WALLPAPER END] -->
-
-    <!-- [PHONE-FRAME START] 手机主屏幕框架 -->
-    <div id="phone-frame">
-
-      <!-- [STATUS-BAR START] 状态栏 -->
-      <div id="status-bar">
-        <span id="status-time">00:00</span>
-        <div id="status-icons">
-          <span class="status-icon" id="status-signal">●●●</span>
-          <span class="status-icon" id="status-wifi">WiFi</span>
-          <span class="status-icon" id="status-battery">🔋</span>
+<body>
+    <div id="phone-container">
+        <!-- 状态栏 -->
+        <div id="status-bar">
+            <span id="status-time"></span>
+            <div class="status-icons">
+                <span>⛧</span>
+                <span id="status-signal">☽</span>
+            </div>
         </div>
-      </div>
-      <!-- [STATUS-BAR END] -->
 
-      <!-- [HOME-SCREEN START] 主屏幕滑动区域 -->
-      <div id="home-screen">
+        <!-- 页面容器 -->
+        <div id="pages">
+            <!-- 主页 -->
+            <div class="page active" id="page-home">
+                <div class="home-header">
+                    <h1 class="home-title">☽ MiniPhone ⛧</h1>
+                    <p class="home-subtitle">— Whispers in the Dark —</p>
+                </div>
+                <div class="home-grid">
+                    <div class="home-app" data-page="chat-list">
+                        <div class="app-icon">💀</div>
+                        <span>Messages</span>
+                    </div>
+                    <div class="home-app" data-page="forum-list">
+                        <div class="app-icon">⛧</div>
+                        <span>Forum</span>
+                    </div>
+                    <div class="home-app" data-page="settings">
+                        <div class="app-icon">⚙️</div>
+                        <span>Settings</span>
+                    </div>
+                </div>
+                <div class="home-clock" id="home-clock"></div>
+            </div>
 
-        <!-- [PAGE-DOTS START] 页面指示点 -->
-        <div id="page-dots"></div>
-        <!-- [PAGE-DOTS END] -->
+            <!-- 聊天列表 -->
+            <div class="page" id="page-chat-list">
+                <div class="page-header">
+                    <button class="back-btn" data-back="home">◁</button>
+                    <h2>Messages</h2>
+                    <button class="action-btn" id="btn-new-chat">✦</button>
+                </div>
+                <div class="page-body">
+                    <div id="chat-contacts" class="contact-list"></div>
+                </div>
+            </div>
 
-        <!-- [PAGES-CONTAINER START] 所有页面的滑动容器 -->
-        <div id="pages-container">
-          <!-- 页面由 JS 动态生成 -->
+            <!-- 聊天页面 -->
+            <div class="page" id="page-chat">
+                <div class="page-header">
+                    <button class="back-btn" data-back="chat-list">◁</button>
+                    <div class="chat-header-info">
+                        <div class="chat-header-avatar" id="chat-avatar">🤖</div>
+                        <h2 id="chat-title">Chat</h2>
+                    </div>
+                    <button class="action-btn" id="btn-chat-menu">⋮</button>
+                </div>
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input-bar">
+                    <textarea id="chat-input" placeholder="Type a message..." rows="1"></textarea>
+                    <button id="btn-send" class="send-btn">➤</button>
+                </div>
+            </div>
+
+            <!-- 论坛列表 -->
+            <div class="page" id="page-forum-list">
+                <div class="page-header">
+                    <button class="back-btn" data-back="home">◁</button>
+                    <h2>Forum</h2>
+                    <button class="action-btn" id="btn-new-post">✦</button>
+                </div>
+                <div class="page-body">
+                    <div id="forum-posts" class="post-list"></div>
+                </div>
+            </div>
+
+            <!-- 帖子详情 -->
+            <div class="page" id="page-forum-post">
+                <div class="page-header">
+                    <button class="back-btn" data-back="forum-list">◁</button>
+                    <h2>Post</h2>
+                    <button class="action-btn" id="btn-post-menu">⋮</button>
+                </div>
+                <div class="page-body" id="post-detail"></div>
+                <div class="chat-input-bar">
+                    <textarea id="comment-input" placeholder="Write a comment..." rows="1"></textarea>
+                    <button id="btn-comment" class="send-btn">➤</button>
+                </div>
+            </div>
+
+            <!-- 设置 -->
+            <div class="page" id="page-settings">
+                <div class="page-header">
+                    <button class="back-btn" data-back="home">◁</button>
+                    <h2>Settings</h2>
+                </div>
+                <div class="page-body settings-body">
+                    <div class="settings-section">
+                        <h3>⛧ API Configuration</h3>
+                        <div class="setting-item">
+                            <label>API Base URL</label>
+                            <input type="text" id="setting-api-url" placeholder="https://api.example.com">
+                        </div>
+                        <div class="setting-item">
+                            <label>API Key</label>
+                            <input type="password" id="setting-api-key" placeholder="sk-...">
+                        </div><div class="setting-item">
+                            <label>Model</label>
+                            <div class="model-select-wrap">
+                                <select id="setting-model"><option value="">-- Fetch models first --</option></select>
+                <button id="btn-fetch-models" class="small-btn">Fetch</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>☽ User Profile</h3>
+                        <div class="setting-item">
+                            <label>Username</label>
+                            <input type="text" id="setting-username" placeholder="Your name">
+                        </div>
+                        <div class="setting-item">
+                            <label>Avatar (emoji or URL)</label>
+                            <input type="text" id="setting-user-avatar" placeholder="😈or https://...">
+                        </div>
+                        <div class="setting-item">
+                            <label>Persona / System Prompt</label>
+                            <textarea id="setting-persona" rows="4" placeholder="Describe yourself..."></textarea>
+                        </div>
+                    </div><div class="settings-section">
+                        <h3>🗡️ Summary Prompt</h3>
+                        <div class="setting-item">
+                            <textarea id="setting-summary-prompt" rows="5"></textarea>
+                        </div>
+                    </div>
+                <div class="settings-section">
+                        <h3>📥 Import / Export</h3>
+                        <div class="setting-item btn-group">
+                            <button id="btn-import-char" class="gothic-btn">Import Char JSON</button>
+                            <button id="btn-export-data" class="gothic-btn">Export All Data</button>
+                            <button id="btn-import-data" class="gothic-btn">Import Data</button>
+                            <input type="file" id="file-import-char" accept=".json" hidden>
+                            <input type="file" id="file-import-data" accept=".json" hidden>
+                        </div>
+                    </div>
+                <button id="btn-save-settings" class="gothic-btn primary full-width">Save Settings</button>
+                </div>
+            </div>
         </div>
-        <!-- [PAGES-CONTAINER END] -->
 
-      </div>
-      <!-- [HOME-SCREEN END] -->
-
-      <!-- [DOCK START] 底部 Dock 栏 -->
-      <div id="dock">
-        <div id="dock-glass"></div>
-        <div id="dock-icons">
-          <!-- Dock 图标由 JS 动态生成 -->
+        <!-- 底部导航 -->
+        <div id="nav-bar">
+            <button class="nav-item active" data-page="home">
+                <span class="nav-icon">☽</span>
+                <span class="nav-label">Home</span>
+            </button>
+            <button class="nav-item" data-page="chat-list">
+                <span class="nav-icon">💀</span>
+                <span class="nav-label">Chat</span>
+            </button>
+            <button class="nav-item" data-page="forum-list">
+                <span class="nav-icon">⛧</span>
+                <span class="nav-label">Forum</span>
+            </button>
+            <button class="nav-item" data-page="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Settings</span>
+            </button>
         </div>
-      </div>
-      <!-- [DOCK END] -->
-
     </div>
-    <!-- [PHONE-FRAME END] -->
 
-    <!-- [APP-LAYER START] App 全屏覆盖层（打开 App 时使用） -->
-    <div id="app-layer" class="hidden">
-      <div id="app-container">
-        <!-- App 内容由 router.js 动态注入 -->
-      </div>
-      <!-- App 内部状态栏 -->
-      <div id="app-status-bar">
-        <button id="app-back-btn" aria-label="返回主屏幕">←</button>
-        <span id="app-title"></span>
-        <div style="width:32px"></div>
-      </div>
+    <!-- 模态框容器 -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content" id="modal-content"></div>
     </div>
-    <!-- [APP-LAYER END] -->
 
-    <!-- [MODAL-ROOT START] 全局弹窗挂载点 -->
-    <div id="modal-root"></div>
-    <!-- [MODAL-ROOT END] -->
-
-    <!-- [TOAST-ROOT START] 全局 Toast 挂载点 -->
-    <div id="toast-root"></div>
-    <!-- [TOAST-ROOT END] -->
-
-    <!-- [SETTINGS-PANEL START] 设置面板（从右侧滑入） -->
-    <div id="settings-panel" class="panel-hidden" role="dialog" aria-label="设置">
-      <!-- 由 settings.js 填充 -->
-    </div>
-    <!-- [SETTINGS-PANEL END] -->
-
-  </div>
-  <!-- [SCREEN-WRAPPER END] -->
-
-  <!-- [SCRIPTS START] JS 模块加载（顺序敏感） -->
-  <!-- 核心层 -->
-  <script src="js/core/store.js"></script>
-  <script src="js/core/storage.js"></script>
-  <script src="js/core/router.js"></script>
-  <!-- UI 层 -->
-  <script src="js/ui/toast.js"></script>
-  <script src="js/ui/modal.js"></script>
-  <script src="js/ui/phone-shell.js"></script>
-  <!-- 小组件层 -->
-  <script src="js/widgets/widget-registry.js"></script>
-  <script src="js/widgets/clock.js"></script>
-  <script src="js/widgets/countdown.js"></script>
-  <script src="js/widgets/together-music.js"></script>
-  <script src="js/widgets/profile-card.js"></script>
-  <script src="js/widgets/mood.js"></script>
-  <script src="js/widgets/photo-carousel.js"></script>
-  <script src="js/widgets/sticky-note.js"></script>
-  <script src="js/widgets/fortune.js"></script>
-  <script src="js/widgets/pomodoro.js"></script>
-  <script src="js/widgets/steps.js"></script>
-  <!-- App 层 -->
-  <script src="js/apps/chat/chat.js"></script>
-  <script src="js/apps/calendar/calendar.js"></script>
-  <script src="js/apps/music/music.js"></script>
-  <script src="js/apps/pet/pet.js"></script>
-  <script src="js/apps/ledger/ledger.js"></script>
-  <script src="js/apps/ticket/ticket.js"></script>
-  <script src="js/apps/settings/settings.js"></script>
-  <!-- 入口（最后加载） -->
-  <script src="js/core/app.js"></script>
-  <!-- [SCRIPTS END] -->
-
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div><script src="js/store.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/forum.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
-<!-- ============================================================
-     index.html END
-     ============================================================ -->
+

@@ -1,0 +1,260 @@
+:root {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: rgba(18, 18, 18, 0.85);
+    --bg-glass: rgba(25, 25, 25, 0.65);
+    --bg-glass-hover: rgba(35, 35, 35, 0.75);
+    --bg-card: rgba(20, 20, 20, 0.8);
+    --border-color: rgba(80, 80, 80, 0.3);
+    --border-glow: rgba(120, 80, 160, 0.25);
+    --text-primary: #e0d8e8;
+    --text-secondary: #8a8194;
+    --text-muted: #5a5264;
+    --accent: #9b6dcc;
+    --accent-dim: rgba(155, 109, 204, 0.2);
+    --accent-red: #8b3a3a;
+    --accent-red-dim: rgba(139, 58, 58, 0.2);
+    --accent-green: #3a6b3a;
+    --bubble-self: rgba(90, 50, 130, 0.35);
+    --bubble-other: rgba(30, 30, 35, 0.8);
+    --shadow-dark: 0 4px 24px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 20px rgba(120, 80, 160, 0.1);
+    --blur-amount: 20px;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --font-gothic: 'Cinzel', serif;
+    --font-body: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+body {
+    background:
+        radial-gradient(ellipse at 20% 0%, rgba(60, 20, 80, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(40, 10, 30, 0.15) 0%, transparent 60%),
+        var(--bg-primary);
+}
+
+::-webkit-scrollbar {
+    width: 3px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(120, 80, 160, 0.3);
+    border-radius: 10px;
+}
+
+input, textarea, select, button {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    outline: none;
+    border: none;
+    background: none;
+}
+
+input, textarea, select {
+    background: rgba(15, 15, 20, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    color: var(--text-primary);
+    transition: border-color 0.3s;width: 100%;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 40px;
+}
+
+select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238a8194'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+}
+
+.glass {
+    background: var(--bg-glass);
+    backdrop-filter: blur(var(--blur-amount));
+    -webkit-backdrop-filter: blur(var(--blur-amount));
+    border: 1px solid var(--border-color);
+}
+
+.gothic-btn {
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-glass);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: var(--font-gothic);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.gothic-btn:hover {
+    background: var(--bg-glass-hover);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-glow);
+}
+
+.gothic-btn:active {
+    transform: scale(0.97);
+}
+
+.gothic-btn.primary {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+}
+
+.gothic-btn.full-width {
+    width: 100%;
+}
+
+.small-btn {
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-dim);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.3s;white-space: nowrap;
+}
+
+.small-btn:hover {
+    border-color: var(--accent);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 24px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 13px;
+    z-index: 10000;
+    animation: toastIn 0.3s ease;box-shadow: var(--shadow-dark);
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-dark);
+}
+
+.modal-content h3 {
+    font-family: var(--font-gothic);
+    color: var(--accent);
+    margin-bottom: 16px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.modal-content .setting-item {
+    margin-bottom: 14px;
+}
+
+.modal-content .setting-item label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.modal-content .modal-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.modal-content .modal-btns .gothic-btn {
+    flex: 1;
+}
+
+/* Avatar */
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
