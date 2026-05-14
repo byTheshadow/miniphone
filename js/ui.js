@@ -9,23 +9,35 @@ const UI = (() => {
     }
 
     // Modal
-    function showModal(html, onClose) {
-        const overlay = document.getElementById('modal-overlay');
-        const content = document.getElementById('modal-content');
-        content.innerHTML = html;
-        overlay.classList.remove('hidden');
-        overlay._onClose = onClose;
-
-        overlay.onclick = (e) => {
-            if (e.target === overlay) closeModal();
-        };
+function showModal(html, titleOrCallback = '') {
+    const overlay = document.getElementById('modal-overlay');
+    const content = document.getElementById('modal-content');
+    
+    let finalHtml = html;
+    let onClose = null;
+    
+    // 判断第二个参数是字符串（title）还是函数（callback）
+    if (typeof titleOrCallback === 'string' && titleOrCallback) {
+        finalHtml = `<div style="font-family:var(--font-gothic);font-size:16px;color:var(--text-primary);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border-color);letter-spacing:1px;">${escapeHtml(titleOrCallback)}</div>` + html;
+    } else if (typeof titleOrCallback === 'function') {
+        onClose = titleOrCallback;
     }
+    
+    content.innerHTML = finalHtml;
+    overlay.classList.remove('hidden');
+    overlay._onClose = onClose;
 
-    function closeModal() {
-        const overlay = document.getElementById('modal-overlay');
-        overlay.classList.add('hidden');
-        if (overlay._onClose) overlay._onClose();
-    }
+    overlay.onclick = (e) => {
+        if (e.target === overlay) closeModal();
+    };
+}
+
+function closeModal() {
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.add('hidden');
+    if (overlay._onClose) overlay._onClose();
+}
+
 
     // Render avatar (emoji or image URL)
     function renderAvatar(value, size = 40) {
