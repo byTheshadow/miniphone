@@ -121,7 +121,9 @@ const App = (() => {
                 username: document.getElementById('setting-username').value.trim() || 'User',
                 userAvatar: document.getElementById('setting-user-avatar').value.trim() || '😈',
                 persona: document.getElementById('setting-persona').value.trim(),
-                summaryPrompt: document.getElementById('setting-summary-prompt').value.trim()
+                summaryPrompt: document.getElementById('setting-summary-prompt').value.trim(),
+                forumPrompt: document.getElementById('setting-forum-prompt').value.trim(),
+                
             };
             Store.saveSettings(settings);
             UI.toast('Settings saved ✦');
@@ -412,6 +414,7 @@ const App = (() => {
         document.getElementById('setting-user-avatar').value = settings.userAvatar || '';
         document.getElementById('setting-persona').value = settings.persona || '';
         document.getElementById('setting-summary-prompt').value = settings.summaryPrompt || '';
+        document.getElementById('setting-forum-prompt').value = settings.forumPrompt || '';
 
         if (settings.model) {
             var select = document.getElementById('setting-model');

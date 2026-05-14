@@ -82,30 +82,31 @@
             </div>
 
             <!-- 论坛列表 -->
-            <div class="page" id="page-forum-list">
-                <div class="page-header">
-                    <button class="back-btn" data-back="home">◁</button>
-                    <h2>Forum</h2>
-                    <button class="action-btn" id="btn-new-post">✦</button>
-                </div>
-                <div class="page-body">
-                    <div id="forum-posts" class="post-list"></div>
-                </div>
-            </div>
+<div class="page" id="page-forum-list">
+    <div class="page-header">
+        <button class="back-btn" data-back="home">◁</button>
+        <h2>Forum</h2>
+        <button class="action-btn" id="btn-new-post">✦</button>
+    </div>
+    <div class="page-body">
+        <div class="forum-tab-bar" id="forum-tab-bar"></div>
+        <div id="forum-posts" class="post-list"></div>
+    </div>
+</div>
 
-            <!-- 帖子详情 -->
-            <div class="page" id="page-forum-post">
-                <div class="page-header">
-                    <button class="back-btn" data-back="forum-list">◁</button>
-                    <h2>Post</h2>
-                    <button class="action-btn" id="btn-post-menu">⋮</button>
-                </div>
-                <div class="page-body" id="post-detail"></div>
-                <div class="chat-input-bar">
-                    <textarea id="comment-input" placeholder="Write a comment..." rows="1"></textarea>
-                    <button id="btn-comment" class="send-btn">➤</button>
-                </div>
-            </div>
+          <!-- 帖子详情 -->
+<div class="page" id="page-forum-post">
+    <div class="page-header">
+        <button class="back-btn" data-back="forum-list">◁</button>
+        <h2>Post</h2>
+        <button class="action-btn" id="btn-post-menu">⋮</button>
+    </div>
+    <div class="page-body" id="post-detail"></div>
+    <div class="chat-input-bar">
+        <textarea id="comment-input" placeholder="Write a comment..." rows="1"></textarea>
+        <button id="btn-comment" class="send-btn">➤</button>
+    </div>
+</div>
 
             <!-- 设置 -->
             <div class="page" id="page-settings">
@@ -150,6 +151,15 @@
                         <div class="setting-item">
                             <textarea id="setting-summary-prompt" rows="5"></textarea>
                         </div>
+                        <div class="settings-section">
+    <h3>⛧ Forum Prompt</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+        This prompt is injected when AI characters post or reply in the forum.
+    </p>
+    <div class="setting-item">
+        <textarea id="setting-forum-prompt" rows="4" placeholder="e.g. This is a dark underground forum. All characters should speak in a mysterious tone..."></textarea>
+    </div>
+</div>
                         <div class="settings-section">
     <h3>📚 Knowledge Books</h3>
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">

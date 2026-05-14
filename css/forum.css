@@ -1,27 +1,167 @@
-/* Post List */
+/* ============================================
+   FORUM.CSS — Dark Gothic Frosted Glass Forum
+   ============================================ */
+
+/* --- Board Tab Bar --- */
+.forum-tab-bar {
+    display: flex;
+    gap: 6px;
+    padding: 0 2px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.forum-tab-bar::-webkit-scrollbar { display: none; }
+
+.forum-tab {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    font-size: 11px;
+    font-family: var(--font-gothic);
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    background: rgba(20, 20, 20, 0.5);
+    border: 1px solid rgba(60, 60, 60, 0.25);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;text-transform: uppercase;
+}
+.forum-tab:hover {
+    color: var(--text-secondary);
+    border-color: rgba(100, 100, 100, 0.35);
+}
+.forum-tab.active {
+    color: var(--text-primary);
+    background: rgba(45, 45, 45, 0.7);
+    border-color: rgba(120, 120, 120, 0.4);
+    box-shadow: 0 0 12px rgba(200, 200, 200, 0.04);
+}
+
+/* --- Post List --- */
 .post-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
+/* --- Post Card --- */
 .post-card {
+    position: relative;
     padding: 14px 16px;
     background: var(--bg-glass);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: all 0.25s;
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
-
+.post-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, transparent 60%);
+    pointer-events: none;
+}
 .post-card:hover {
-    border-color: var(--border-glow);
-    box-shadow: var(--shadow-glow);
+    border-color: rgba(100, 100, 100, 0.4);
+    box-shadow: 0 0 20px rgba(200, 200, 200, 0.03);
+    transform: translateY(-1px);
+}
+.post-card:active {
+    transform: scale(0.985);
 }
 
-.post-card:active {
-    transform: scale(0.98);
+/* Hot post glow */
+.post-card.hot-post {
+    border-color: rgba(180, 120, 60, 0.3);
+    box-shadow: 0 0 18px rgba(200, 130, 50, 0.06);
+}
+.post-card.hot-post::after {
+    content: '\uD83D\uDD25';
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* New post badge */
+.post-card.new-post::after {
+    content: 'NEW';
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 9px;
+    font-family: var(--font-gothic);
+    letter-spacing: 1px;
+    color: #ccc;
+    background: rgba(80, 80, 80, 0.5);
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid rgba(100, 100, 100, 0.3);
+}
+/* hot takes priority over new */
+.post-card.hot-post.new-post::after {
+    content: '\uD83D\uDD25';
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 14px;
+}
+
+/* Anonymous post style */
+.post-card.anon-post {
+    border-left: 2px solid rgba(100, 100, 100, 0.3);
+}
+.post-card.anon-post .post-author {
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+/* Forwarded post */
+.post-card .forwarded-tag {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-style: italic;
+}
+.post-card .forwarded-tag::before {
+    content: '\u21BB';
+}
+
+/* Board tag on card */
+.post-board-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-family: var(--font-gothic);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: rgba(40, 40, 40, 0.6);
+    border: 1px solid rgba(60, 60, 60, 0.3);
+    padding: 1px 8px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+}
+
+/* Post tags */
+.post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+.post-tag {
+    font-size: 10px;
+    color: var(--text-muted);
+    background: rgba(50, 50, 50, 0.5);
+    border: 1px solid rgba(70, 70, 70, 0.25);
+    padding: 1px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.3px;
 }
 
 .post-card-header {
@@ -30,24 +170,20 @@
     gap: 10px;
     margin-bottom: 10px;
 }
-
 .post-card-header .avatar {
     width: 28px;
     height: 28px;
     font-size: 14px;
 }
-
 .post-author {
     font-size: 12px;
     color: var(--text-secondary);
     flex: 1;
 }
-
 .post-timestamp {
     font-size: 10px;
     color: var(--text-muted);
 }
-
 .post-card-title {
     font-size: 15px;
     font-weight: 500;
@@ -55,7 +191,6 @@
     margin-bottom: 6px;
     line-height: 1.4;
 }
-
 .post-card-body {
     font-size: 13px;
     color: var(--text-secondary);
@@ -65,94 +200,149 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-
 .post-card-footer {
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-top: 10px;padding-top: 10px;
-    border-top: 1px solid var(--border-color);
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(60, 60, 60, 0.2);
 }
 
 .post-stat {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 12px;
+    gap: 4px;font-size: 12px;
     color: var(--text-muted);
     cursor: pointer;
     padding: 4px 8px;
     border-radius: var(--radius-sm);
     transition: all 0.2s;
 }
-
 .post-stat:hover {
-    background: var(--accent-dim);
+    background: rgba(60, 60, 60, 0.3);
     color: var(--text-secondary);
 }
-
 .post-stat.upvoted {
-    color: var(--accent);
+    color: var(--text-primary);
 }
 
-/* Post Detail */
+/* --- Post Detail --- */
 .post-detail-card {
     padding: 16px;
     background: var(--bg-glass);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     margin-bottom: 16px;
+    position: relative;
 }
-
 .post-detail-title {
     font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
-    margin: 12px 0 8px;line-height: 1.4;
+    margin: 12px 0 8px;
+    line-height: 1.4;
 }
-
 .post-detail-body {
     font-size: 14px;
     color: var(--text-secondary);
     line-height: 1.7;
     white-space: pre-wrap;
 }
-
 .post-detail-footer {
     display: flex;
     align-items: center;
     gap: 16px;
     margin-top: 14px;
     padding-top: 12px;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid rgba(60, 60, 60, 0.2);
 }
 
-/* Comments */
+/* Anon reveal button */
+.anon-reveal-btn {
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius:4px;
+    border: 1px solid rgba(70, 70, 70, 0.3);
+    background: rgba(30, 30, 30, 0.6);
+    transition: all 0.25s;
+    margin-left: auto;
+    font-family: var(--font-gothic);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.anon-reveal-btn:hover {
+    color: var(--text-secondary);
+    border-color: rgba(100, 100, 100, 0.4);
+    background: rgba(40, 40, 40, 0.7);
+}
+.anon-reveal-btn.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Forwarded banner in detail */
+.forwarded-banner {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    background: rgba(30, 30, 30, 0.5);
+    border: 1px solid rgba(50, 50, 50, 0.25);
+    border-radius: var(--radius-sm);
+}
+.forwarded-banner::before {
+    content: '\u21BB ';
+}
+
+/* --- Comments Section --- */
 .comments-section {
     margin-top: 4px;
 }
-
 .comments-header {
     font-family: var(--font-gothic);
     font-size: 13px;
     color: var(--text-secondary);
     padding: 8px 4px;
     letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.comments-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(80,80,80,0.3), transparent);
 }
 
 .comment-item {
     padding: 12px;
     margin-bottom: 6px;
     background: var(--bg-card);
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(50, 50, 50, 0.25);
     border-radius: var(--radius-sm);
     margin-left: 0;
+    transition: all 0.2s;
 }
-
+.comment-item:hover {
+    border-color: rgba(70, 70, 70, 0.35);
+}
 .comment-item.reply {
     margin-left: 24px;
-    border-left: 2px solid var(--accent-dim);
+    border-left: 2px solid rgba(80, 80, 80, 0.3);
+}
+.comment-item.anon-comment {
+    border-left: 2px solid rgba(60, 60, 60, 0.3);
+}
+.comment-item.anon-comment .comment-author {
+    font-style: italic;
+    color: var(--text-muted);
 }
 
 .comment-header {
@@ -160,24 +350,21 @@
     align-items: center;
     gap: 8px;margin-bottom: 6px;
 }
-
 .comment-header .avatar {
     width: 22px;
     height: 22px;
     font-size: 11px;
 }
-
 .comment-author {
     font-size: 12px;
     color: var(--text-secondary);
     font-weight: 500;
 }
-
 .comment-time {
     font-size: 10px;
-    color: var(--text-muted);margin-left: auto;
+    color: var(--text-muted);
+    margin-left: auto;
 }
-
 .comment-body {
     font-size: 13px;
     color: var(--text-primary);
@@ -187,39 +374,169 @@
 
 .comment-actions {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     padding-left: 30px;margin-top: 6px;
 }
-
 .comment-action {
     font-size: 11px;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 2px 6px;
+    padding: 2px 8px;
     border-radius:4px;
     transition: all 0.2s;
+    border: 1px solid transparent;
 }
-
 .comment-action:hover {
-    color: var(--accent);
-    background: var(--accent-dim);
+    color: var(--text-secondary);
+    background: rgba(50, 50, 50, 0.4);
+    border-color: rgba(70, 70, 70, 0.3);
 }
 
-/* Empty state */
+/* Summon passers-by button */
+.summon-btn {
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius:6px;
+    border: 1px dashed rgba(70, 70, 70, 0.35);
+    background: rgba(20, 20, 20, 0.4);
+    transition: all 0.3s;
+    text-align: center;
+    margin: 8px 0;
+    font-family: var(--font-gothic);
+    letter-spacing: 0.5px;
+}
+.summon-btn:hover {
+    color: var(--text-secondary);
+    border-color: rgba(100, 100, 100, 0.4);
+    background: rgba(30, 30, 30, 0.5);
+    box-shadow: 0 0 15px rgba(150, 150, 150, 0.03);
+}
+.summon-btn.loading {
+    pointer-events: none;
+    opacity: 0.5;
+}
+.summon-btn.loading::after {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--text-muted);
+    border-top-color: transparent;
+    border-radius: 50%;
+    margin-left: 8px;
+    animation: summonSpin 0.8s linear infinite;
+    vertical-align: middle;
+}
+@keyframes summonSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Forward button in comment actions */
+.comment-action.forward-action::before {
+    content: '\u21BB ';
+}
+
+/* --- Forum Prompt Setting --- */
+.forum-prompt-section {
+    margin-top: 8px;
+}
+
+/* --- Empty State --- */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
     color: var(--text-muted);
 }
-
 .empty-state .empty-icon {
     font-size: 48px;
     margin-bottom: 16px;
-    opacity: 0.5;
+    opacity: 0.4;
 }
-
 .empty-state p {
     font-family: var(--font-gothic);
     font-size: 13px;
     letter-spacing: 1px;
 }
+
+/* --- New Post Modal Enhancements --- */
+.board-select-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+.board-select-item {
+    padding: 5px 12px;
+    font-size: 11px;
+    font-family: var(--font-gothic);
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    background: rgba(25, 25, 25, 0.6);
+    border: 1px solid rgba(60, 60, 60, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-transform: uppercase;
+}
+.board-select-item:hover {
+    color: var(--text-secondary);
+    border-color: rgba(90, 90, 90, 0.4);
+}
+.board-select-item.selected {
+    color: var(--text-primary);
+    background: rgba(50, 50, 50, 0.6);
+    border-color: rgba(120, 120, 120, 0.4);
+}
+
+/* Anon toggle */
+.anon-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    cursor: pointer;
+    padding: 8px 0;
+}
+.anon-toggle-track {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: rgba(40, 40, 40, 0.6);
+    border: 1px solid rgba(60, 60, 60, 0.3);
+    position: relative;
+    transition: all 0.3s;
+    flex-shrink: 0;
+}
+.anon-toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: all 0.3s;
+}
+.anon-toggle.on .anon-toggle-track {
+    background: rgba(80, 80, 80, 0.6);
+    border-color: rgba(120, 120, 120, 0.4);
+}
+.anon-toggle.on .anon-toggle-track::after {
+    left: 18px;
+    background: var(--text-primary);
+}
+.anon-toggle-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* --- Scrollbar for forum page-body --- */
+#page-forum-list .page-body,
+#page-forum-post .page-body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(80, 80, 80, 0.3) transparent;
+}
+

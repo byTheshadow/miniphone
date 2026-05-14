@@ -25,16 +25,17 @@ const Store = (() => {
     // ── Settings ──────────────────────────────────────────────────
 
     function getSettings() {
-        return get('settings', {
-            apiUrl: '',
-            apiKey: '',
-            model: '',
-            username: 'User',
-            userAvatar: '😈',
-            persona: '',
-            summaryPrompt: `Summarize the following conversation concisely, preserving key facts, character traits, emotional states, and important plot points. Write in third person. Keep it under 300 words.\n\nConversation:\n{{conversation}}\n\nSummary:`
-        });
-    }
+    return get('settings', {
+        apiUrl: '',
+        apiKey: '',
+        model: '',
+        username: 'User',
+        userAvatar: '😈',
+        persona: '',
+        summaryPrompt: `Summarize the following conversation concisely, preserving key facts, character traits, emotional states, and important plot points. Write in third person. Keep it under 300 words.\n\nConversation:\n{{conversation}}\n\nSummary:`,
+        forumPrompt: ''
+    });
+}
 
     function saveSettings(s) {
         set('settings', s);
@@ -249,6 +250,62 @@ const Store = (() => {
             }
         });
     }
+    // ===== 在Store模块内部（return 之前）添加以下内容 =====
+
+// --- NPC Pool ---
+function getNpcPool() {
+    const raw = localStorage.getItem('mp_npc_pool');
+    return raw ? JSON.parse(raw) : [];
+}
+function saveNpcPool(arr) {
+    localStorage.setItem('mp_npc_pool', JSON.stringify(arr));
+}
+function addNpc(obj) {
+    const pool = getNpcPool();
+    const npc = Object.assign({
+        id: 'npc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        name: 'Stranger',
+        avatar: '\uD83D\uDC64',
+        persona: '',
+        createdAt: Date.now()
+    }, obj);
+    pool.push(npc);
+    saveNpcPool(pool);return npc;
+}
+function getRandomNpc() {
+    const pool = getNpcPool();
+    if (pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// --- Anon Reveal Tracking ---
+function getAnonReveals() {
+    const raw = localStorage.getItem('mp_anon_reveals');
+    if (!raw) return { date: '', count: 0 };
+    const obj = JSON.parse(raw);
+    const today = new Date().toISOString().slice(0, 10);
+    if (obj.date !== today) return { date: today, count: 0 };
+    return obj;
+}
+function useAnonReveal() {
+    const today = new Date().toISOString().slice(0, 10);
+    const reveals = getAnonReveals();
+    if (reveals.date !== today) {
+        reveals.date = today;
+        reveals.count = 0;
+    }
+    if (reveals.count >= 3) return false;
+    reveals.count++;
+    localStorage.setItem('mp_anon_reveals', JSON.stringify(reveals));
+    return true;
+}
+function getAnonRevealCount() {
+    const reveals = getAnonReveals();
+    const today = new Date().toISOString().slice(0, 10);
+    if (reveals.date !== today) return 0;
+    return reveals.count;
+}
+
 
     return {
         get, set, remove,
@@ -261,7 +318,7 @@ const Store = (() => {
         getPosts, savePosts, addPost, getPost, updatePost, deletePost,
         getKnowledgeBooks, saveKnowledgeBooks, addKnowledgeBook,
         getKnowledgeBook, updateKnowledgeBook, deleteKnowledgeBook,
-        exportAll, importAll
+        exportAll, importAll, getNpcPool, saveNpcPool, addNpc, getRandomNpc,getAnonReveals, useAnonReveal, getAnonRevealCount,
     };
 })();
 
