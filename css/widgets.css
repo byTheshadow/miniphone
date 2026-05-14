@@ -1,0 +1,574 @@
+/* ============================================================
+   widgets.css — 所有小组件的视觉样式
+   ============================================================ */
+
+/* [WIDGET-BASE START] 小组件通用基础 */
+.widget {
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  min-height: 80px;
+}
+
+.widget-inner {
+  width: 100%;
+  height: 100%;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.widget-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+/* [WIDGET-BASE END] */
+
+/* ============================================================ */
+
+/* [WIDGET-CLOCK START] 时钟小组件 2×2 */
+.widget-clock {
+  background: var(--glass-dark-bg);
+  border: 1px solid var(--glass-dark-border);
+  backdrop-filter: blur(var(--glass-dark-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-dark-blur)) saturate(180%);
+  box-shadow: var(--glass-dark-shadow);
+}
+
+.widget-clock .clock-time {
+  font-size: 42px;
+  font-weight: 200;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.widget-clock .clock-date {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.widget-clock .clock-seconds {
+  font-size: 13px;
+  color: var(--accent-primary);
+  font-variant-numeric: tabular-nums;
+}
+/* [WIDGET-CLOCK END] */
+
+/* ============================================================ */
+
+/* [WIDGET-COUNTDOWN START] 倒数日小组件 2×1 */
+.widget-countdown {
+  background: linear-gradient(135deg,
+    rgba(123, 140, 255, 0.25) 0%,
+    rgba(180, 143, 255, 0.20) 100%);
+  border: 1px solid rgba(123, 140, 255, 0.25);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.widget-countdown .countdown-days {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--accent-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-countdown .countdown-event {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.widget-countdown .countdown-prefix {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+/* [WIDGET-COUNTDOWN END] */
+
+/* ============================================================ */
+
+/* [WIDGET-PROFILE START] 头像+个性签名小组件 4×1 */
+.widget-profile {
+  background: var(--glass-light-bg);
+  border: 1px solid var(--glass-light-border);
+  backdrop-filter: blur(var(--glass-light-blur)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--glass-light-blur)) saturate(200%);
+  box-shadow: var(--glass-light-shadow);
+}
+
+.widget-profile .widget-inner {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.widget-profile .profile-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--glass-dark-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border: 2px solid var(--glass-light-border);
+}
+
+.widget-profile .profile-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.widget-profile .profile-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.widget-profile .profile-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.widget-profile .profile-bio {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+/* [WIDGET-PROFILE END] */
+
+/* ============================================================ */
+
+/* [WIDGET-TOGETHER-MUSIC START] 一起听小组件 4×2 */
+.widget-together-music {
+  background: var(--glass-dark-bg);
+  border: 1px solid var(--glass-dark-border);
+  backdrop-filter: blur(var(--glass-dark-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-dark-blur)) saturate(180%);
+  box-shadow: var(--glass-dark-shadow);
+  overflow: hidden;
+}
+
+/* 专辑封面作为背景 */
+.widget-together-music .music-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) brightness(0.4) saturate(1.6);
+  transform: scale(1.1);
+  transition: background-image 0.6s ease;
+}
+
+.widget-together-music .widget-inner {
+  position: relative;
+  z-index: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.widget-together-music .music-cover {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--glass-dark-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.widget-together-music .music-cover img {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.widget-together-music .music-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.widget-together-music .music-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.widget-together-music .music-artist {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 进度条 */
+.widget-together-music .music-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.widget-together-music .music-progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  transition: width 0.5s linear;
+}
+
+/* 控制按钮 */
+.widget-together-music .music-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.widget-together-music .music-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.85;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.widget-together-music .music-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.widget-together-music .music-btn.play-btn {
+  font-size: 24px;
+}
+/* [WIDGET-TOGETHER-MUSIC END] */
+
+/* ============================================================ */
+
+/* [WIDGET-MOOD START] 心情打卡小组件 2×1 */
+.widget-mood {
+  background: linear-gradient(135deg,
+    rgba(255, 182, 100, 0.22) 0%,
+    rgba(255, 100, 130, 0.18) 100%);
+  border: 1px solid rgba(255, 182, 100, 0.22);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.widget-mood .mood-emoji {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.widget-mood .mood-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.widget-mood .mood-streak {
+  font-size: 11px;
+  color: var(--accent-warning);
+  font-weight: 600;
+}
+/* [WIDGET-MOOD END] */
+
+/* ============================================================ */
+
+/* [WIDGET-PHOTO-CAROUSEL START] 相册轮播小组件 2×2 */
+.widget-photo-carousel {
+  background: var(--glass-dark-bg);
+  border: 1px solid var(--glass-dark-border);
+  backdrop-filter: blur(var(--glass-dark-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-dark-blur)) saturate(180%);
+  padding: 0;
+}
+
+.widget-photo-carousel .carousel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.5s ease;
+}
+
+.widget-photo-carousel .carousel-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 12px 10px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.55));
+  font-size: 11px;
+  color: rgba(255,255,255,0.85);
+}
+
+.widget-photo-carousel .carousel-dots {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  display: flex;
+  gap: 4px;
+}
+
+.widget-photo-carousel .carousel-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  transition: background 0.2s;
+}
+
+.widget-photo-carousel .carousel-dot.active {
+  background: rgba(255,255,255,0.9);
+}
+/* [WIDGET-PHOTO-CAROUSEL END] */
+
+/* ============================================================ */
+
+/* [WIDGET-STICKY-NOTE START] 便签贴纸小组件 2×2 */
+.widget-sticky-note {
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* 颜色变体 */
+.widget-sticky-note.note-yellow {
+  background: rgba(255, 230, 100, 0.22);
+  border: 1px solid rgba(255, 230, 100, 0.30);
+}
+.widget-sticky-note.note-pink {
+  background: rgba(255, 150, 180, 0.20);
+  border: 1px solid rgba(255, 150, 180, 0.28);
+}
+.widget-sticky-note.note-blue {
+  background: rgba(100, 160, 255, 0.20);
+  border: 1px solid rgba(100, 160, 255, 0.28);
+}
+.widget-sticky-note.note-green {
+  background: rgba(100, 220, 160, 0.20);
+  border: 1px solid rgba(100, 220, 160, 0.28);
+}
+
+.widget-sticky-note .note-content {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+
+.widget-sticky-note .note-date {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: auto;
+  padding-top: 8px;
+}
+/* [WIDGET-STICKY-NOTE END] */
+
+/* ============================================================ */
+
+/* [WIDGET-FORTUNE START] 今日运势小组件 2×1 */
+.widget-fortune {
+  background: linear-gradient(135deg,
+    rgba(255, 200, 80, 0.20) 0%,
+    rgba(255, 140, 60, 0.18) 100%);
+  border: 1px solid rgba(255, 200, 80, 0.22);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.widget-fortune .fortune-stars {
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--accent-warning);
+}
+
+.widget-fortune .fortune-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+/* [WIDGET-FORTUNE END] */
+
+/* ============================================================ */
+
+/* [WIDGET-POMODORO START] 番茄钟小组件 2×2 */
+.widget-pomodoro {
+  background: linear-gradient(135deg,
+    rgba(255, 100, 100, 0.22) 0%,
+    rgba(200, 60, 80, 0.18) 100%);
+  border: 1px solid rgba(255, 100, 100, 0.22);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.widget-pomodoro .pomodoro-ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+}
+
+.widget-pomodoro .pomodoro-ring svg {
+  transform: rotate(-90deg);
+}
+
+.widget-pomodoro .pomodoro-ring .ring-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.10);
+  stroke-width: 5;
+}
+
+.widget-pomodoro .pomodoro-ring .ring-fill {
+  fill: none;
+  stroke: var(--accent-danger);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.widget-pomodoro .pomodoro-time {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-pomodoro .pomodoro-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 6px;
+}
+
+.widget-pomodoro .pomodoro-btn {
+  margin-top: 8px;
+  padding: 6px 18px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.12);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: center;
+}
+
+.widget-pomodoro .pomodoro-btn:hover {
+  background: rgba(255,255,255,0.20);
+}
+/* [WIDGET-POMODORO END] */
+
+/* ============================================================ */
+
+/* [WIDGET-STEPS START] 步数环小组件 2×2 */
+.widget-steps {
+  background: linear-gradient(135deg,
+    rgba(94, 255, 160, 0.18) 0%,
+    rgba(60, 180, 120, 0.15) 100%);
+  border: 1px solid rgba(94, 255, 160, 0.20);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.widget-steps .steps-ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+}
+
+.widget-steps .steps-ring svg {
+  transform: rotate(-90deg);
+}
+
+.widget-steps .steps-ring .ring-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.10);
+  stroke-width: 5;
+}
+
+.widget-steps .steps-ring .ring-fill {
+  fill: none;
+  stroke: var(--accent-success);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease;
+}
+
+.widget-steps .steps-count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-steps .steps-goal {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 6px;
+}
+/* [WIDGET-STEPS END] */
+
+/* ============================================================
+   widgets.css END
+   ============================================================ */
+
