@@ -51,9 +51,9 @@
   <div class="app-icon">🗓</div>
   <span>Diary</span>
 </div>
-<div class="app-icon" data-page="receipt">
-    <div class="app-icon-img">🧾</div>
-    <div class="app-icon-label">恋爱小票</div>
+<div class="home-app" data-page="receipt">
+    <div class="app-icon">🧾</div>
+    <span>恋爱小票</span>
 </div>
                     <div class="home-app" data-page="settings">
                         <div class="app-icon">⚙️</div>
@@ -62,21 +62,26 @@
                 </div>
                 <div class="home-clock" id="home-clock"></div>
             </div>
-            <!-- Diary Page -->
-<div class="page" id="page-diary">
-  <div class="page-header">
-    <button class="back-btn" onclick="App.navigateTo('home', true)">◀</button>
-    <h2 class="page-title">Diary</h2>
-    <button class="diary-settings-btn" id="diary-settings-btn">⚙</button>
-  </div><div class="diary-scroll" id="diary-content">
-    <div class="page" id="page-receipt">
-    <div class="page-header">
-        <button class="back-btn" onclick="App.navigateTo('home', true)">‹</button>
-        <h2>恋爱小票</h2>
-    </div>
-    <div id="receipt-content"></div>
-</div>
-    <!-- Rendered by diary.js -->
+                        <!-- Diary Page -->
+            <div class="page" id="page-diary">
+                <div class="page-header">
+                    <button class="back-btn" onclick="App.navigateTo('home', true)">◀</button>
+                    <h2 class="page-title">Diary</h2>
+                    <button class="diary-settings-btn" id="diary-settings-btn">⚙</button>
+                </div>
+                <div class="diary-scroll" id="diary-content">
+                    <!-- Rendered by diary.js -->
+                </div>
+            </div>
+
+            <!-- Receipt Page -->
+            <div class="page" id="page-receipt">
+                <div class="page-header">
+                    <button class="back-btn" onclick="App.navigateTo('home', true)">‹</button>
+                    <h2>恋爱小票</h2>
+                </div>
+                <div id="receipt-content"></div>
+            </div>
   </div>
 </div>
 
