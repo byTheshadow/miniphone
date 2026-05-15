@@ -33,36 +33,56 @@
 
         <!-- 页面容器 -->
         <div id="pages">
+            
             <!-- 主页 -->
             <div class="page active" id="page-home">
-                <div class="home-header">
-                    <h1 class="home-title">☽ MiniPhone ⛧</h1>
-                    <p class="home-subtitle">— Whispers in the Dark —</p>
+                
+                <!-- 桌面分屏容器 (滑动区域) -->
+                <div class="home-screens" id="home-screens">
+                    <!-- 第一屏 (App 网格) -->
+                    <div class="home-screen" id="home-screen-0">
+                        <div class="home-header">
+                            <h1 class="home-title">☽ MiniPhone ⛧</h1>
+                            <p class="home-subtitle">— Whispers in the Dark —</p>
+                        </div>
+                        <div class="home-grid">
+                            <div class="home-app" data-page="chat-list">
+                                <div class="app-icon">💀</div>
+                                <span>Messages</span>
+                            </div>
+                            <div class="home-app" data-page="forum-list">
+                                <div class="app-icon">⛧</div>
+                                <span>Forum</span>
+                            </div>
+                            <div class="home-app" data-page="diary">
+                                <div class="app-icon">🗓</div>
+                                <span>Diary</span>
+                            </div>
+                            <div class="home-app" data-page="receipt">
+                                <div class="app-icon">🧾</div>
+                                <span>恋爱小票</span>
+                            </div>
+                            <div class="home-app" data-page="settings">
+                                <div class="app-icon">⚙️</div>
+                                <span>Settings</span>
+                            </div>
+                        </div>
+                        <div class="home-clock" id="home-clock"></div>
+                    </div>
+                    
+                    <!-- 第二屏 (Widget) -->
+                    <div class="home-screen" id="home-screen-1">
+                        <div id="widget-screen"></div>
+                    </div>
+                </div> <!-- /#home-screens -->
+
+                <!-- 屏幕指示点 (固定不滑动，作为 home-screens 的兄弟元素) -->
+                <div class="home-dots" id="home-dots">
+                    <div class="home-dot active" data-idx="0"></div>
+                    <div class="home-dot" data-idx="1"></div>
                 </div>
-                <div class="home-grid">
-                    <div class="home-app" data-page="chat-list">
-                        <div class="app-icon">💀</div>
-                        <span>Messages</span>
-                    </div>
-                    <div class="home-app" data-page="forum-list">
-                        <div class="app-icon">⛧</div>
-                        <span>Forum</span>
-                    </div>
-                    <div class="home-app" data-page="diary">
-                        <div class="app-icon">🗓</div>
-                        <span>Diary</span>
-                    </div>
-                    <div class="home-app" data-page="receipt">
-                        <div class="app-icon">🧾</div>
-                        <span>恋爱小票</span>
-                    </div>
-                    <div class="home-app" data-page="settings">
-                        <div class="app-icon">⚙️</div>
-                        <span>Settings</span>
-                    </div>
-                </div>
-                <div class="home-clock" id="home-clock"></div>
-            </div>
+                
+            </div> <!-- /#page-home -->
             
             <!-- Diary Page -->
             <div class="page" id="page-diary">
@@ -356,4 +376,3 @@
     <script src="js/app.js"></script>
 </body>
 </html>
-
