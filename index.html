@@ -1,3 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>MiniPhone</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/forum.css">
+    <link rel="stylesheet" href="css/diary.css">
+    <link rel="stylesheet" href="css/receipt.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+</head>
+<body>
+    <div id="phone-container">
+        <!-- 状态栏 -->
+        <div id="status-bar">
+            <span id="status-time"></span>
+            <div class="status-icons">
+                <span>⛧</span>
+                <span id="status-signal">☽</span>
+            </div>
+        </div>
+
         <!-- 页面容器 -->
         <div id="pages">
             <!-- 主页 -->
@@ -30,7 +62,7 @@
                 </div>
                 <div class="home-clock" id="home-clock"></div>
             </div>
-
+            
             <!-- Diary Page -->
             <div class="page" id="page-diary">
                 <div class="page-header">
@@ -134,6 +166,7 @@
                             </div>
                         </div>
                     </div>
+                    
                     <div class="settings-section">
                         <h3>☽ User Profile</h3>
                         <div class="setting-item">
@@ -149,21 +182,24 @@
                             <textarea id="setting-persona" rows="4" placeholder="Describe yourself..."></textarea>
                         </div>
                     </div>
+                    
                     <div class="settings-section">
                         <h3>🗡️ Summary Prompt</h3>
                         <div class="setting-item">
                             <textarea id="setting-summary-prompt" rows="5"></textarea>
                         </div>
                     </div>
+                    
                     <div class="settings-section">
                         <h3>⛧ Forum Prompt</h3>
                         <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
                             This prompt is injected when AI characters post or reply in the forum.
                         </p>
                         <div class="setting-item">
-                            <textarea id="setting-forum-prompt" rows="4" placeholder="e.g. This is a dark underground forum..."></textarea>
+                            <textarea id="setting-forum-prompt" rows="4" placeholder="e.g. This is a dark underground forum. All characters should speak in a mysterious tone..."></textarea>
                         </div>
                     </div>
+                    
                     <div class="settings-section">
                         <h3>⚙ Background Tasks</h3>
                         <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
@@ -208,10 +244,12 @@
                         </div>
                         <button class="gothic-btn full-width" id="btn-save-bg-settings" style="margin-top:12px;">Save Background Settings</button>
                     </div>
+
                     <div class="settings-section">
                         <h3>📋 Error Logs</h3>
                         <button id="btn-view-logs" class="gothic-btn full-width">View Logs</button>
                     </div>
+
                     <div class="settings-section">
                         <h3>📚 Knowledge Books</h3>
                         <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
@@ -219,6 +257,7 @@
                         </p>
                         <button id="btn-manage-kb" class="gothic-btn full-width">Manage Knowledge Books</button>
                     </div>
+
                     <div class="settings-section">
                         <h3>📥 Import / Export</h3>
                         <div class="setting-item btn-group">
@@ -229,12 +268,13 @@
                             <input type="file" id="file-import-data" accept=".json" hidden>
                         </div>
                     </div>
+                        
+                    <!-- Data Management Section -->
                     <div class="settings-section">
-                        <h3>☠ Data Management</h3>
-                        <div style="display:flex;flex-direction:column;gap:8px;">
+                        <h3 class="settings-section-title">☠ Data Management</h3>
+                        <div class="settings-group" style="display:flex;flex-direction:column;gap:8px;">
                             <button class="settings-btn" id="btn-clear-chat" style="text-align:left;padding:12px 16px;">
-                                🗨️ Clear Chat Data
-                                <span style="float:right;font-size:11px;color:var(--text-muted);">Messages & Conversations</span>
+                                🗨️ Clear Chat Data<span style="float:right;font-size:11px;color:var(--text-muted);">Messages & Conversations</span>
                             </button>
                             <button class="settings-btn" id="btn-clear-forum" style="text-align:left;padding:12px 16px;">
                                 📋 Clear Forum Data
@@ -255,10 +295,11 @@
                             </button>
                         </div>
                     </div>
+
                     <button id="btn-save-settings" class="gothic-btn primary full-width">Save Settings</button>
                 </div>
             </div>
-
+            
             <!-- 日志页面 -->
             <div class="page" id="page-logs">
                 <div class="page-header">
@@ -272,7 +313,7 @@
                 </div>
             </div>
 
-        </div><!-- /#pages -->
+        </div> <!-- /#pages -->
 
         <!-- 底部导航 -->
         <div id="nav-bar">
@@ -293,7 +334,24 @@
                 <span class="nav-label">Settings</span>
             </button>
         </div>
+    </div> <!-- /#phone-container -->
 
-    </div><!-- /#phone-container -->
+    <!-- 模态框容器 -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content" id="modal-content"></div>
+    </div>
 
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+    
+    <script src="js/store.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/forum.js"></script>
+    <script src="js/diary.js"></script>
+    <script src="js/receipt.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
 
