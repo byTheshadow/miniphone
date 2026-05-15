@@ -1,35 +1,3 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#0a0a0a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>MiniPhone</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/layout.css">
-    <link rel="stylesheet" href="css/chat.css">
-    <link rel="stylesheet" href="css/forum.css">
-    <link rel="stylesheet" href="css/diary.css">
-    <link rel="stylesheet" href="css/receipt.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
-</head>
-<body>
-    <div id="phone-container">
-        <!-- 状态栏 -->
-        <div id="status-bar">
-            <span id="status-time"></span>
-            <div class="status-icons">
-                <span>⛧</span>
-                <span id="status-signal">☽</span>
-            </div>
-        </div>
-
         <!-- 页面容器 -->
         <div id="pages">
             <!-- 主页 -->
@@ -48,13 +16,13 @@
                         <span>Forum</span>
                     </div>
                     <div class="home-app" data-page="diary">
-  <div class="app-icon">🗓</div>
-  <span>Diary</span>
-</div>
-<div class="home-app" data-page="receipt">
-    <div class="app-icon">🧾</div>
-    <span>恋爱小票</span>
-</div>
+                        <div class="app-icon">🗓</div>
+                        <span>Diary</span>
+                    </div>
+                    <div class="home-app" data-page="receipt">
+                        <div class="app-icon">🧾</div>
+                        <span>恋爱小票</span>
+                    </div>
                     <div class="home-app" data-page="settings">
                         <div class="app-icon">⚙️</div>
                         <span>Settings</span>
@@ -62,7 +30,8 @@
                 </div>
                 <div class="home-clock" id="home-clock"></div>
             </div>
-                        <!-- Diary Page -->
+
+            <!-- Diary Page -->
             <div class="page" id="page-diary">
                 <div class="page-header">
                     <button class="back-btn" onclick="App.navigateTo('home', true)">◀</button>
@@ -82,8 +51,6 @@
                 </div>
                 <div id="receipt-content"></div>
             </div>
-  </div>
-</div>
 
             <!-- 聊天列表 -->
             <div class="page" id="page-chat-list">
@@ -116,31 +83,31 @@
             </div>
 
             <!-- 论坛列表 -->
-<div class="page" id="page-forum-list">
-    <div class="page-header">
-        <button class="back-btn" data-back="home">◁</button>
-        <h2>Forum</h2>
-        <button class="action-btn" id="btn-new-post">✦</button>
-    </div>
-    <div class="page-body">
-        <div class="forum-tab-bar" id="forum-tab-bar"></div>
-        <div id="forum-posts" class="post-list"></div>
-    </div>
-</div>
+            <div class="page" id="page-forum-list">
+                <div class="page-header">
+                    <button class="back-btn" data-back="home">◁</button>
+                    <h2>Forum</h2>
+                    <button class="action-btn" id="btn-new-post">✦</button>
+                </div>
+                <div class="page-body">
+                    <div class="forum-tab-bar" id="forum-tab-bar"></div>
+                    <div id="forum-posts" class="post-list"></div>
+                </div>
+            </div>
 
-          <!-- 帖子详情 -->
-<div class="page" id="page-forum-post">
-    <div class="page-header">
-        <button class="back-btn" data-back="forum-list">◁</button>
-        <h2>Post</h2>
-        <button class="action-btn" id="btn-post-menu">⋮</button>
-    </div>
-    <div class="page-body" id="post-detail"></div>
-    <div class="chat-input-bar">
-        <textarea id="comment-input" placeholder="Write a comment..." rows="1"></textarea>
-        <button id="btn-comment" class="send-btn">➤</button>
-    </div>
-</div>
+            <!-- 帖子详情 -->
+            <div class="page" id="page-forum-post">
+                <div class="page-header">
+                    <button class="back-btn" data-back="forum-list">◁</button>
+                    <h2>Post</h2>
+                    <button class="action-btn" id="btn-post-menu">⋮</button>
+                </div>
+                <div class="page-body" id="post-detail"></div>
+                <div class="chat-input-bar">
+                    <textarea id="comment-input" placeholder="Write a comment..." rows="1"></textarea>
+                    <button id="btn-comment" class="send-btn">➤</button>
+                </div>
+            </div>
 
             <!-- 设置 -->
             <div class="page" id="page-settings">
@@ -158,11 +125,12 @@
                         <div class="setting-item">
                             <label>API Key</label>
                             <input type="password" id="setting-api-key" placeholder="sk-...">
-                        </div><div class="setting-item">
+                        </div>
+                        <div class="setting-item">
                             <label>Model</label>
                             <div class="model-select-wrap">
                                 <select id="setting-model"><option value="">-- Fetch models first --</option></select>
-                <button id="btn-fetch-models" class="small-btn">Fetch</button>
+                                <button id="btn-fetch-models" class="small-btn">Fetch</button>
                             </div>
                         </div>
                     </div>
@@ -180,77 +148,78 @@
                             <label>Persona / System Prompt</label>
                             <textarea id="setting-persona" rows="4" placeholder="Describe yourself..."></textarea>
                         </div>
-                    </div><div class="settings-section">
+                    </div>
+                    <div class="settings-section">
                         <h3>🗡️ Summary Prompt</h3>
                         <div class="setting-item">
                             <textarea id="setting-summary-prompt" rows="5"></textarea>
                         </div>
-                        <div class="settings-section">
-    <h3>⛧ Forum Prompt</h3>
-    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-        This prompt is injected when AI characters post or reply in the forum.
-    </p>
-    <div class="setting-item">
-        <textarea id="setting-forum-prompt" rows="4" placeholder="e.g. This is a dark underground forum. All characters should speak in a mysterious tone..."></textarea>
-    </div>
-    <div class="settings-section">
-    <h3>⚙ Background Tasks</h3>
-    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-        Control AI auto-posting in forum and proactive chat messages.
-    </p>
-    <div class="bg-settings-grid">
-        <div class="bg-setting-row">
-            <label>Enable Background Tasks</label>
-            <div class="anon-toggle" id="bg-enabled-toggle">
-                <div class="anon-toggle-track"></div>
-            </div>
-        </div>
-        <div class="bg-setting-row">
-            <label>Forum Post Interval (sec)</label>
-            <input type="number" id="bg-forum-interval" min="30" max="3600" value="180">
-        </div>
-        <div class="bg-setting-row">
-            <label>Forum Post Chance</label>
-            <input type="range" id="bg-forum-chance" min="0" max="100" value="50">
-            <span class="range-val" id="bg-forum-chance-val">50%</span>
-        </div>
-        <div class="bg-setting-row">
-            <label>Forum Reply Chance</label>
-            <input type="range" id="bg-reply-chance" min="0" max="100" value="50">
-            <span class="range-val" id="bg-reply-chance-val">50%</span>
-        </div>
-        <div class="bg-setting-row">
-            <label>Enable Chat Messages</label>
-            <div class="anon-toggle" id="bg-chat-toggle">
-                <div class="anon-toggle-track"></div>
-            </div>
-        </div>
-        <div class="bg-setting-row">
-            <label>Chat Message Interval (sec)</label>
-            <input type="number" id="bg-chat-interval" min="60" max="3600" value="300">
-        </div>
-        <div class="bg-setting-row">
-            <label>Chat Message Chance</label>
-            <input type="range" id="bg-chat-chance" min="0" max="100" value="30">
-            <span class="range-val" id="bg-chat-chance-val">30%</span>
-        </div></div>
-    <button class="gothic-btn full-width" id="btn-save-bg-settings" style="margin-top:12px;">Save Background Settings</button>
-</div>
-
-<div class="settings-section">
-    <h3>📋 Error Logs</h3>
-    <button id="btn-view-logs" class="gothic-btn full-width">View Logs</button>
-</div>
-</div>
-                        <div class="settings-section">
-    <h3>📚 Knowledge Books</h3>
-    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-        Global books inject into all chats. Char books inject only for that character.
-    </p>
-    <button id="btn-manage-kb" class="gothic-btn full-width">Manage Knowledge Books</button>
-</div>
                     </div>
-                <div class="settings-section">
+                    <div class="settings-section">
+                        <h3>⛧ Forum Prompt</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+                            This prompt is injected when AI characters post or reply in the forum.
+                        </p>
+                        <div class="setting-item">
+                            <textarea id="setting-forum-prompt" rows="4" placeholder="e.g. This is a dark underground forum..."></textarea>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>⚙ Background Tasks</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+                            Control AI auto-posting in forum and proactive chat messages.
+                        </p>
+                        <div class="bg-settings-grid">
+                            <div class="bg-setting-row">
+                                <label>Enable Background Tasks</label>
+                                <div class="anon-toggle" id="bg-enabled-toggle">
+                                    <div class="anon-toggle-track"></div>
+                                </div>
+                            </div>
+                            <div class="bg-setting-row">
+                                <label>Forum Post Interval (sec)</label>
+                                <input type="number" id="bg-forum-interval" min="30" max="3600" value="180">
+                            </div>
+                            <div class="bg-setting-row">
+                                <label>Forum Post Chance</label>
+                                <input type="range" id="bg-forum-chance" min="0" max="100" value="50">
+                                <span class="range-val" id="bg-forum-chance-val">50%</span>
+                            </div>
+                            <div class="bg-setting-row">
+                                <label>Forum Reply Chance</label>
+                                <input type="range" id="bg-reply-chance" min="0" max="100" value="50">
+                                <span class="range-val" id="bg-reply-chance-val">50%</span>
+                            </div>
+                            <div class="bg-setting-row">
+                                <label>Enable Chat Messages</label>
+                                <div class="anon-toggle" id="bg-chat-toggle">
+                                    <div class="anon-toggle-track"></div>
+                                </div>
+                            </div>
+                            <div class="bg-setting-row">
+                                <label>Chat Message Interval (sec)</label>
+                                <input type="number" id="bg-chat-interval" min="60" max="3600" value="300">
+                            </div>
+                            <div class="bg-setting-row">
+                                <label>Chat Message Chance</label>
+                                <input type="range" id="bg-chat-chance" min="0" max="100" value="30">
+                                <span class="range-val" id="bg-chat-chance-val">30%</span>
+                            </div>
+                        </div>
+                        <button class="gothic-btn full-width" id="btn-save-bg-settings" style="margin-top:12px;">Save Background Settings</button>
+                    </div>
+                    <div class="settings-section">
+                        <h3>📋 Error Logs</h3>
+                        <button id="btn-view-logs" class="gothic-btn full-width">View Logs</button>
+                    </div>
+                    <div class="settings-section">
+                        <h3>📚 Knowledge Books</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+                            Global books inject into all chats. Char books inject only for that character.
+                        </p>
+                        <button id="btn-manage-kb" class="gothic-btn full-width">Manage Knowledge Books</button>
+                    </div>
+                    <div class="settings-section">
                         <h3>📥 Import / Export</h3>
                         <div class="setting-item btn-group">
                             <button id="btn-import-char" class="gothic-btn">Import Char JSON</button>
@@ -259,47 +228,51 @@
                             <input type="file" id="file-import-char" accept=".json" hidden>
                             <input type="file" id="file-import-data" accept=".json" hidden>
                         </div>
-                        <!-- Data Management Section -->
-<div class="settings-section">
-  <h3 class="settings-section-title">☠ Data Management</h3>
-  <div class="settings-group" style="display:flex;flex-direction:column;gap:8px;">
-    <button class="settings-btn" id="btn-clear-chat" style="text-align:left;padding:12px 16px;">🗨️ Clear Chat Data<span style="float:right;font-size:11px;color:var(--text-muted);">Messages & Conversations</span>
-    </button>
-    <button class="settings-btn" id="btn-clear-forum" style="text-align:left;padding:12px 16px;">
-      📋 Clear Forum Data
-      <span style="float:right;font-size:11px;color:var(--text-muted);">Posts & NPCs</span>
-    </button>
-    <button class="settings-btn" id="btn-clear-diary" style="text-align:left;padding:12px 16px;">
-      📅 Clear Diary Data
-      <span style="float:right;font-size:11px;color:var(--text-muted);">Entries & Settings</span>
-    </button><button class="settings-btn" id="btn-clear-npc" style="text-align:left;padding:12px 16px;">
-      👻 Clear NPC Pool
-      <span style="float:right;font-size:11px;color:var(--text-muted);">Forum NPCs only</span>
-    </button><div style="border-top:1px solid var(--border-color);margin:8px 0;"></div>
-    <button class="settings-btn" id="btn-clear-all" style="text-align:left;padding:12px 16px;border-color:rgba(139,58,58,0.4);color:#c47070;">
-      ☠ Clear ALL Data
-      <span style="float:right;font-size:11px;color:rgba(139,58,58,0.6);">Everything — irreversible</span>
-    </button>
-  </div>
-</div>
                     </div>
-                <button id="btn-save-settings" class="gothic-btn primary full-width">Save Settings</button>
+                    <div class="settings-section">
+                        <h3>☠ Data Management</h3>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            <button class="settings-btn" id="btn-clear-chat" style="text-align:left;padding:12px 16px;">
+                                🗨️ Clear Chat Data
+                                <span style="float:right;font-size:11px;color:var(--text-muted);">Messages & Conversations</span>
+                            </button>
+                            <button class="settings-btn" id="btn-clear-forum" style="text-align:left;padding:12px 16px;">
+                                📋 Clear Forum Data
+                                <span style="float:right;font-size:11px;color:var(--text-muted);">Posts & NPCs</span>
+                            </button>
+                            <button class="settings-btn" id="btn-clear-diary" style="text-align:left;padding:12px 16px;">
+                                📅 Clear Diary Data
+                                <span style="float:right;font-size:11px;color:var(--text-muted);">Entries & Settings</span>
+                            </button>
+                            <button class="settings-btn" id="btn-clear-npc" style="text-align:left;padding:12px 16px;">
+                                👻 Clear NPC Pool
+                                <span style="float:right;font-size:11px;color:var(--text-muted);">Forum NPCs only</span>
+                            </button>
+                            <div style="border-top:1px solid var(--border-color);margin:8px 0;"></div>
+                            <button class="settings-btn" id="btn-clear-all" style="text-align:left;padding:12px 16px;border-color:rgba(139,58,58,0.4);color:#c47070;">
+                                ☠ Clear ALL Data
+                                <span style="float:right;font-size:11px;color:rgba(139,58,58,0.6);">Everything — irreversible</span>
+                            </button>
+                        </div>
+                    </div>
+                    <button id="btn-save-settings" class="gothic-btn primary full-width">Save Settings</button>
                 </div>
             </div>
-        </div>
-        <!-- 日志页面 -->
-<div class="page" id="page-logs">
-    <div class="page-header">
-        <button class="back-btn" data-back="settings">◁</button>
-        <h2>Logs</h2>
-        <button class="action-btn" id="btn-clear-logs">🗑</button>
-    </div>
-    <div class="page-body">
-        <div class="log-controls" id="log-controls"></div>
-        <div class="log-list" id="log-list"></div>
-    </div>
-</div>
 
+            <!-- 日志页面 -->
+            <div class="page" id="page-logs">
+                <div class="page-header">
+                    <button class="back-btn" data-back="settings">◁</button>
+                    <h2>Logs</h2>
+                    <button class="action-btn" id="btn-clear-logs">🗑</button>
+                </div>
+                <div class="page-body">
+                    <div class="log-controls" id="log-controls"></div>
+                    <div class="log-list" id="log-list"></div>
+                </div>
+            </div>
+
+        </div><!-- /#pages -->
 
         <!-- 底部导航 -->
         <div id="nav-bar">
@@ -320,22 +293,7 @@
                 <span class="nav-label">Settings</span>
             </button>
         </div>
-    </div>
 
-    <!-- 模态框容器 -->
-    <div id="modal-overlay" class="modal-overlay hidden">
-        <div class="modal-content" id="modal-content"></div>
-    </div>
+    </div><!-- /#phone-container -->
 
-    <!-- Toast -->
-    <div id="toast" class="toast hidden"></div><script src="js/store.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/ai.js"></script>
-    <script src="js/chat.js"></script>
-    <script src="js/forum.js"></script>
-    <script src="js/diary.js"></script>
-    <script src="js/receipt.js"></script>
-    <script src="js/app.js"></script>
-</body>
-</html>
 
