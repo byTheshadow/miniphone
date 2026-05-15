@@ -289,3 +289,54 @@
 #page-home {
     position: relative;
 }
+#page-home {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.home-screens {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.home-screen {
+    flex-shrink: 0;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.home-dots {
+    position: absolute;
+    bottom: 12px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.home-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    transition: background 0.2s, transform 0.2s;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.home-dot.active {
+    background: rgba(255, 255, 0.85);
+    transform: scale(1.4);
+}
+
