@@ -439,6 +439,35 @@ function clearAllData() {
     }
     keys.forEach(k => localStorage.removeItem(k));
 }
+// ── Token Usage ──────────────────────────────────────────────────
+// Storage key: mp_token_usage
+// Shape: { [convId]: number }
+
+function getTokenUsage(convId) {
+    var all = get('token_usage', {});
+    return all[convId] || 0;
+}
+
+function addTokenUsage(convId, tokens) {
+    var all = get('token_usage', {});
+    all[convId] = (all[convId] || 0) + tokens;
+    set('token_usage', all);
+}
+
+function getAllTokenUsage() {
+    return get('token_usage', {});
+}
+
+function clearTokenUsage(convId) {
+    var all = get('token_usage', {});
+    if (convId) {
+        delete all[convId];
+    } else {
+        all = {};
+    }
+    set('token_usage', all);
+}
+
 
 
 
@@ -458,7 +487,7 @@ function clearAllData() {
 getBgSettings, saveBgSettings,getDiaryEntries, saveDiaryEntries, getDiaryDay, saveDiaryDay,
 addDiarySticker, removeDiarySticker, saveDiaryNote, addDiaryAiMessage,
 getDiarySettings, saveDiarySettings,
-clearChatData, clearForumData, clearDiaryData, clearNpcPool, clearAllData,
+clearChatData, clearForumData, clearDiaryData, clearNpcPool, clearAllData,getTokenUsage, addTokenUsage, getAllTokenUsage, clearTokenUsage,
 
 
     };

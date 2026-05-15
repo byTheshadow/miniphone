@@ -8,6 +8,7 @@ var App = (function() {
         Chat.init();
         Forum.init();
         Diary.init();
+        Receipt.init();
 
 
         bindNavigation();
@@ -19,6 +20,7 @@ var App = (function() {
         loadBgSettings();
         registerSW();
         bindClearButtons();
+        
 
     }
 
@@ -73,6 +75,7 @@ var App = (function() {
         if (pageId === 'chat-list') Chat.renderContactList();
         if (pageId === 'forum-list') Forum.renderPostList();
         if (pageId === 'logs') renderLogs();
+        if (pageId === 'receipt') { Receipt.render(); }
         
 
         if (prevPage) {
@@ -95,7 +98,8 @@ var App = (function() {
             'forum-post': 'forum-list',
             'settings': 'settings',
             'logs': 'settings',
-            'diary': 'home'// diary 页面时，nav bar 高亮 home
+            'diary': 'home',// diary 页面时，nav bar 高亮 home
+            'receipt': 'home',
         };
         document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
         var activeNav = document.querySelector('.nav-item[data-page="' + (navMap[pageId] || pageId) + '"]');

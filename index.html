@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/chat.css">
     <link rel="stylesheet" href="css/forum.css">
     <link rel="stylesheet" href="css/diary.css">
+    <link rel="stylesheet" href="css/receipt.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
 </head>
 <body>
@@ -50,6 +51,10 @@
   <div class="app-icon">🗓</div>
   <span>Diary</span>
 </div>
+<div class="app-icon" data-page="receipt">
+    <div class="app-icon-img">🧾</div>
+    <div class="app-icon-label">恋爱小票</div>
+</div>
                     <div class="home-app" data-page="settings">
                         <div class="app-icon">⚙️</div>
                         <span>Settings</span>
@@ -64,6 +69,13 @@
     <h2 class="page-title">Diary</h2>
     <button class="diary-settings-btn" id="diary-settings-btn">⚙</button>
   </div><div class="diary-scroll" id="diary-content">
+    <div class="page" id="page-receipt">
+    <div class="page-header">
+        <button class="back-btn" onclick="App.navigateTo('home', true)">‹</button>
+        <h2>恋爱小票</h2>
+    </div>
+    <div id="receipt-content"></div>
+</div>
     <!-- Rendered by diary.js -->
   </div>
 </div>
@@ -317,6 +329,7 @@
     <script src="js/chat.js"></script>
     <script src="js/forum.js"></script>
     <script src="js/diary.js"></script>
+    <script src="js/receipt.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

@@ -365,7 +365,11 @@ const Chat = (() => {
 
         try {
             const apiMessages = AI.buildMessages(currentConvId, conv.charIds || ['__model__']);
-            const reply = await AI.chat(apiMessages);
+            const apiResult = await AI.chatWithUsage(apiMessages);
+const reply = apiResult.content;
+if (apiResult.tokens) {
+    Store.addTokenUsage(currentConvId, apiResult.tokens);
+}
 
             typingEl.remove();
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'miniphone-v3';
+const CACHE_NAME = 'miniphone-v3.1';
 const ASSETS = [
     '/miniphone/',
     '/miniphone/index.html',
@@ -14,7 +14,9 @@ const ASSETS = [
     '/miniphone/js/chat.js',
     '/miniphone/js/forum.js',
     '/miniphone/js/diary.js',
-    '/miniphone/js/app.js'
+    '/miniphone/js/app.js',
+    'js/receipt.js',
+'css/receipt.css',
 ];
 
 self.addEventListener('install', e => {

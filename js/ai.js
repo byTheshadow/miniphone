@@ -32,6 +32,42 @@ const AI = (() => {
             max_tokens: options.max_tokens ?? 2048,
             ...(options.extra || {})
         };
+        
+async function chatWithUsage(messages, options) {
+    const settings = Store.getSettings();
+    if (!settings.apiUrl) throw new Error('API URL not set');
+    if (!settings.model) throw new Error('Model not selected');
+
+    const url = settings.apiUrl.replace(/\/+$/, '') + '/v1/chat/completions';
+    const headers = { 'Content-Type': 'application/json' };
+    if (settings.apiKey) headers['Authorization'] = `Bearer ${settings.apiKey}`;
+
+    options = options || {};
+    const body = {
+        model: settings.model,
+        messages,
+        temperature: options.temperature !== undefined ? options.temperature : 0.8,
+        max_tokens: options.max_tokens || 2048,
+    };
+    if (options.extra) Object.assign(body, options.extra);
+
+    const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+        const errText = await res.text().catch(function() { return ''; });
+        throw new Error('API Error ' + res.status + ': ' + errText);
+    }
+
+    const data = await res.json();
+    return {
+        content: (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '',
+        tokens: (data.usage && data.usage.total_tokens) || 0
+    };
+}
 
         const res = await fetch(url, {
             method: 'POST',
