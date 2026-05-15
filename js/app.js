@@ -9,6 +9,8 @@ var App = (function() {
         Forum.init();
         Diary.init();
         Receipt.init();
+        Widgets.init();
+        initHomeSwipe();
 
 
         bindNavigation();
@@ -23,6 +25,72 @@ var App = (function() {
         
 
     }
+    function initHomeSwipe() {
+    var screens = document.getElementById('home-screens');
+    var dots = document.querySelectorAll('.home-dot');
+    if (!screens) return;
+
+    var currentIdx = 0;
+    var totalScreens = 2;
+    var startX = 0;
+    var startY = 0;
+    var isDragging = false;
+    var THRESHOLD = 50;
+
+    function goTo(idx) {
+        currentIdx = Math.max(0, Math.min(totalScreens - 1, idx));
+        screens.style.transform = 'translateX(-' + (currentIdx * 50) + '%)';
+        dots.forEach(function(d, i) {
+            d.classList.toggle('active', i === currentIdx);
+        });
+        // Render widgets when landing on screen 1
+        if (currentIdx === 1) {
+            Widgets.render();
+        }
+    }
+
+    screens.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isDragging = true;
+    }, { passive: true });
+
+    screens.addEventListener('touchend', function(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        var dx = e.changedTouches[0].clientX - startX;
+        var dy = e.changedTouches[0].clientY - startY;
+        if (Math.abs(dx) < Math.abs(dy)) return; // vertical scroll, ignore
+        if (Math.abs(dx) < THRESHOLD) return;
+        if (dx < 0) goTo(currentIdx + 1);
+        else goTo(currentIdx - 1);
+    }, { passive: true });
+
+    // Dot click
+    dots.forEach(function(d) {
+        d.addEventListener('click', function() {
+            goTo(parseInt(d.dataset.idx));
+        });
+    });
+
+    // Mouse drag support (desktop)
+    screens.addEventListener('mousedown', function(e) {
+        startX = e.clientX;
+        startY = e.clientY;
+        isDragging = true;
+    });
+    screens.addEventListener('mouseup', function(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        if (Math.abs(dx) < Math.abs(dy)) return;
+        if (Math.abs(dx) < THRESHOLD) return;
+        if (dx < 0) goTo(currentIdx + 1);
+        else goTo(currentIdx - 1);
+    });
+    screens.addEventListener('mouseleave', function() { isDragging = false; });
+}
 
     function updateClock() {
         var now = new Date();

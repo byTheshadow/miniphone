@@ -34,33 +34,52 @@
         <div id="pages">
             <!-- 主页 -->
             <div class="page active" id="page-home">
-                <div class="home-header">
-                    <h1 class="home-title">☽ MiniPhone ⛧</h1>
-                    <p class="home-subtitle">— Whispers in the Dark —</p>
+                <!-- 滑动容器 -->
+                <div class="home-screens" id="home-screens">
+
+                    <!-- 屏0：App Grid -->
+                    <div class="home-screen" id="home-screen-0">
+                        <div class="home-header">
+                            <h1 class="home-title">☽ MiniPhone ⛧</h1>
+                            <p class="home-subtitle">— Whispers in the Dark —</p>
+                        </div>
+                        <div class="home-grid">
+                            <div class="home-app" data-page="chat-list">
+                                <div class="app-icon">💀</div>
+                                <span>Messages</span>
+                            </div>
+                            <div class="home-app" data-page="forum-list">
+                                <div class="app-icon">⛧</div>
+                                <span>Forum</span>
+                            </div>
+                            <div class="home-app" data-page="diary">
+                                <div class="app-icon">🗓</div>
+                                <span>Diary</span>
+                            </div>
+                            <div class="home-app" data-page="receipt">
+                                <div class="app-icon">🧾</div>
+                                <span>恋爱小票</span>
+                            </div>
+                            <div class="home-app" data-page="settings">
+                                <div class="app-icon">⚙️</div>
+                                <span>Settings</span>
+                            </div>
+                        </div>
+                        <div class="home-clock" id="home-clock"></div>
+                    </div>
+
+                    <!-- 屏1：Widgets -->
+                    <div class="home-screen" id="home-screen-1">
+                        <div id="widget-screen"></div>
+                    </div>
+
                 </div>
-                <div class="home-grid">
-                    <div class="home-app" data-page="chat-list">
-                        <div class="app-icon">💀</div>
-                        <span>Messages</span>
-                    </div>
-                    <div class="home-app" data-page="forum-list">
-                        <div class="app-icon">⛧</div>
-                        <span>Forum</span>
-                    </div>
-                    <div class="home-app" data-page="diary">
-                        <div class="app-icon">🗓</div>
-                        <span>Diary</span>
-                    </div>
-                    <div class="home-app" data-page="receipt">
-                        <div class="app-icon">🧾</div>
-                        <span>恋爱小票</span>
-                    </div>
-                    <div class="home-app" data-page="settings">
-                        <div class="app-icon">⚙️</div>
-                        <span>Settings</span>
-                    </div>
+
+                <!-- 底部圆点 -->
+                <div class="home-dots" id="home-dots">
+                    <div class="home-dot active" data-idx="0"></div>
+                    <div class="home-dot" data-idx="1"></div>
                 </div>
-                <div class="home-clock" id="home-clock"></div>
             </div>
             
             <!-- Diary Page -->

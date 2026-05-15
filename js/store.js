@@ -467,6 +467,29 @@ function clearTokenUsage(convId) {
     }
     set('token_usage', all);
 }
+// ── Widget Settings ──────────────────────────────────────────────
+// Storage key: mp_widgets
+// Shape: {
+//   clock:   { enabled: true },
+//   together: { enabled: true, avatar1: '😈', avatar2: '🤖',
+//               name1: 'Me', name2: 'TA', song: '', startDate: '' },
+//   profile: { enabled: true, avatar: '😈', bio: '' },
+//   oracle:  { enabled: true }
+// }
+
+function getWidgets() {
+    return get('widgets', {
+        clock:    { enabled: true },
+        together: { enabled: true, avatar1: '\uD83D\uDE08', avatar2: '\uD83E\uDD16',
+                    name1: 'Me', name2: 'TA', song: '\u2665 Our Song', startDate: '' },
+        profile:  { enabled: true, avatar: '\uD83D\uDE08', bio: 'Whispers in the dark...' },
+        oracle:   { enabled: true }
+    });
+}
+
+function saveWidgets(obj) {
+    set('widgets', obj);
+}
 
 
 
@@ -487,7 +510,8 @@ function clearTokenUsage(convId) {
 getBgSettings, saveBgSettings,getDiaryEntries, saveDiaryEntries, getDiaryDay, saveDiaryDay,
 addDiarySticker, removeDiarySticker, saveDiaryNote, addDiaryAiMessage,
 getDiarySettings, saveDiarySettings,
-clearChatData, clearForumData, clearDiaryData, clearNpcPool, clearAllData,getTokenUsage, addTokenUsage, getAllTokenUsage, clearTokenUsage,
+clearChatData, clearForumData, clearDiaryData, clearNpcPool, clearAllData,getTokenUsage, addTokenUsage, getAllTokenUsage, clearTokenUsage,getWidgets, saveWidgets,
+
 
 
     };
