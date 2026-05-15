@@ -25,7 +25,7 @@ var App = (function() {
         
 
     }
-    function initHomeSwipe() {
+   function initHomeSwipe() {
     var screens = document.getElementById('home-screens');
     var dots = document.querySelectorAll('.home-dot');
     if (!screens) return;
@@ -36,18 +36,38 @@ var App = (function() {
     var startY = 0;
     var isDragging = false;
     var THRESHOLD = 50;
+    var phoneW = 0;
+
+    // 设置每个 screen 的宽度为手机容器宽度
+    function setWidths() {
+        var container = document.getElementById('phone-container') || document.body;
+        phoneW = container.offsetWidth;
+        screens.style.width = (phoneW * totalScreens) + 'px';
+        var screenEls = screens.querySelectorAll('.home-screen');
+        screenEls.forEach(function(s) {
+            s.style.width = phoneW + 'px';
+            s.style.height = '100%';
+        });
+    }
 
     function goTo(idx) {
         currentIdx = Math.max(0, Math.min(totalScreens - 1, idx));
-        screens.style.transform = 'translateX(-' + (currentIdx * 50) + '%)';
+        screens.style.transform = 'translateX(-' + (currentIdx * phoneW) + 'px)';
         dots.forEach(function(d, i) {
             d.classList.toggle('active', i === currentIdx);
         });
-        // Render widgets when landing on screen 1
         if (currentIdx === 1) {
             Widgets.render();
         }
     }
+
+    // 初始化宽度
+    setWidths();
+    // 窗口 resize 时重新计算
+    window.addEventListener('resize', function() {
+        setWidths();
+        goTo(currentIdx);
+    });
 
     screens.addEventListener('touchstart', function(e) {
         startX = e.touches[0].clientX;
@@ -60,20 +80,18 @@ var App = (function() {
         isDragging = false;
         var dx = e.changedTouches[0].clientX - startX;
         var dy = e.changedTouches[0].clientY - startY;
-        if (Math.abs(dx) < Math.abs(dy)) return; // vertical scroll, ignore
+        if (Math.abs(dx) < Math.abs(dy)) return;
         if (Math.abs(dx) < THRESHOLD) return;
         if (dx < 0) goTo(currentIdx + 1);
         else goTo(currentIdx - 1);
     }, { passive: true });
 
-    // Dot click
     dots.forEach(function(d) {
         d.addEventListener('click', function() {
             goTo(parseInt(d.dataset.idx));
         });
     });
 
-    // Mouse drag support (desktop)
     screens.addEventListener('mousedown', function(e) {
         startX = e.clientX;
         startY = e.clientY;
@@ -91,6 +109,7 @@ var App = (function() {
     });
     screens.addEventListener('mouseleave', function() { isDragging = false; });
 }
+
 
     function updateClock() {
         var now = new Date();
