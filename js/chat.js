@@ -920,19 +920,11 @@ const Chat = (() => {
             });
         });
 
-        document.getElementById('btn-view-summary').addEventListener('click', () => {
-            const summary = Store.getSummary(currentConvId);
+                document.getElementById('btn-view-summary').addEventListener('click', () => {
             UI.closeModal();
-            UI.showModal(`
-                <h3>📜 Conversation Summary</h3>
-                <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;max-height:300px;overflow-y:auto;">
-                    ${summary ? UI.escapeHtml(summary) : 'No summary yet. Summary is generated every 30 messages.'}
-                </div>
-                <div class="modal-btns">
-                    <button class="gothic-btn full-width" onclick="UI.closeModal()">Close</button>
-                </div>
-            `);
+            showSummaryModal();
         });
+
 
         document.getElementById('btn-clear-chat').addEventListener('click', () => {
             Store.saveMessages(currentConvId, []);
@@ -951,6 +943,170 @@ const Chat = (() => {
             UI.toast('Conversation deleted');
         });
     }
+        // ── Summary Modal（阅读 + 编辑 + 手动生成）────────────────────
+
+    function showSummaryModal() {
+        const convId = currentConvId;
+        const summary = Store.getSummary(convId) || '';
+        const msgCount = Store.getMessages(convId).length;
+
+        UI.showModal(`
+            <h3>📜 Conversation Summary</h3>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+                <span>${msgCount} messages total · auto-generates every 30</span>
+                <button class="gothic-btn" id="btn-gen-summary" style="padding:4px 10px;font-size:11px;">
+                    ✦ Generate Now
+                </button>
+            </div>
+
+            <div id="summary-view-area" style="position:relative;">
+                <textarea
+                    id="summary-textarea"
+                    rows="10"
+                    placeholder="No summary yet. Click 'Generate Now' to create one, or write your own notes here."
+                    style="
+                        width:100%;
+                        box-sizing:border-box;
+                        background:var(--bg-glass);
+                        border:1px solid var(--border-color);
+                        border-radius:var(--radius-md);
+                        color:var(--text-primary);
+                        font-size:13px;
+                        line-height:1.7;
+                        padding:12px;
+                        resize:vertical;
+                        font-family:var(--font-body);
+                        transition:border-color 0.2s;
+                    "
+                >${UI.escapeHtml(summary)}</textarea>
+
+                <!-- 生成中遮罩 -->
+                <div id="summary-loading" style="
+                    display:none;
+                    position:absolute;
+                    inset:0;
+                    background:rgba(10,10,10,0.75);
+                    border-radius:var(--radius-md);
+                    align-items:center;
+                    justify-content:center;
+                    flex-direction:column;
+                    gap:10px;
+                    font-size:13px;
+                    color:var(--text-secondary);
+                ">
+                    <div class="typing-dots" style="transform:scale(1.2);">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span>正在生成总结…</span>
+                </div>
+            </div>
+
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">
+                ✎ 可直接编辑内容，AI 下次回复时会读取这里的总结
+            </div>
+
+            <div class="modal-btns" style="margin-top:14px;">
+                <button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>
+                <button class="gothic-btn danger" id="btn-clear-summary">🗑 Clear</button>
+                <button class="gothic-btn primary" id="btn-save-summary">Save</button>
+            </div>
+        `);
+
+        // 让遮罩用 flex 显示
+        const loadingEl = document.getElementById('summary-loading');
+        const textarea = document.getElementById('summary-textarea');
+
+        // ── Generate Now ──
+        document.getElementById('btn-gen-summary').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-gen-summary');
+            const allMsgs = Store.getMessages(convId);
+
+            if (allMsgs.length < 3) {
+                UI.toast('消息太少，至少需要 3 条才能生成总结');
+                return;
+            }
+
+            // 显示加载状态
+            btn.disabled = true;
+            btn.textContent = '⏳ Generating…';
+            loadingEl.style.display = 'flex';
+            textarea.disabled = true;
+
+            try {
+                const settings = Store.getSettings();
+                const existingSummary = Store.getSummary(convId);
+
+                // 取最近 60 条（或全部）用于生成
+                const msgsToUse = allMsgs.slice(-60);
+                const conversationText = msgsToUse.map(function(m) {
+                    const name = m.senderName || (m.senderId === '__user__'
+                        ? (settings.username || 'User')
+                        : 'Assistant');
+                    return name + ': ' + m.content;
+                }).join('\n');
+
+                var prompt = settings.summaryPrompt || [
+                    'Summarize the following conversation concisely, preserving key facts,',
+                    'character traits, emotional states, and important plot points.',
+                    'Write in third person. Keep it under 300 words.\n\nConversation:\n{{conversation}}\n\nSummary:'
+                ].join(' ');
+                prompt = prompt.replace('{{conversation}}', conversationText);
+
+                if (existingSummary) {
+                    prompt = 'Previous summary:\n' + existingSummary + '\n\n' + prompt;
+                }
+
+                const newSummary = await AI.chat([
+                    { role: 'system', content: 'You are a precise conversation summarizer.' },
+                    { role: 'user', content: prompt }
+                ], { temperature: 0.3, max_tokens: 600 });
+
+                // 写入 store 并更新 textarea
+                Store.saveSummary(convId, newSummary);
+                textarea.value = newSummary;
+                UI.toast('总结已生成 ✦');
+
+            } catch (e) {
+                UI.toast('\u26A0\uFE0F 生成失败：' + (e.message || 'Unknown error'));
+                Store.addLog({
+                    level: 'error',
+                    source: 'summary-modal',
+                    message: 'Manual summary generation failed',
+                    detail: e.message || String(e),
+                    stack: e.stack || ''
+                });
+            } finally {
+                loadingEl.style.display = 'none';
+                textarea.disabled = false;
+                btn.disabled = false;
+                btn.textContent = '\u2726 Generate Now';
+            }
+        });
+
+        // ── Save（手动编辑后保存）──
+        document.getElementById('btn-save-summary').addEventListener('click', () => {
+            const val = textarea.value.trim();
+            Store.saveSummary(convId, val);
+            UI.closeModal();
+            UI.toast('总结已保存 ✦');
+        });
+
+        // ── Clear ──
+        document.getElementById('btn-clear-summary').addEventListener('click', () => {
+            textarea.value = '';
+            Store.saveSummary(convId, '');
+            UI.toast('总结已清除');
+        });
+
+        // textarea focus 高亮
+        textarea.addEventListener('focus', () => {
+            textarea.style.borderColor = 'rgba(140,140,140,0.6)';
+        });
+        textarea.addEventListener('blur', () => {
+            textarea.style.borderColor = 'var(--border-color)';
+        });
+    }
+
 
         // ── Background Message ────────────────────────────────────────
 
