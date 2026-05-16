@@ -532,20 +532,28 @@ const Chat = (() => {
 
     // ── 核心 AI 回复逻辑（sendMessage / reroll / resend 共用）────
 
+        // ── 核心 AI 回复逻辑（sendMessage / reroll / resend 共用）────
+
     async function triggerAiReply() {
         if (!currentConvId || isSending) return;
 
         const conv = Store.getConversation(currentConvId);
         if (!conv) return;
 
-        // 获取角色信息用于指示器
         let charName = 'Assistant';
-        let charAvatar = '🤖';
+        let charAvatar = '\uD83E\uDD16';
+        let senderId = '__model__';
+        let senderName = 'Assistant';
+        let senderAvatar = '\uD83E\uDD16';
+
         if (conv.charIds && conv.charIds.length === 1) {
             const char = Store.getChar(conv.charIds[0]);
             if (char) {
                 charName = char.name;
-                charAvatar = char.avatar || '🤖';
+                charAvatar = char.avatar || '\uD83E\uDD16';
+                senderName = char.name;
+                senderAvatar = char.avatar || '\uD83E\uDD16';
+                senderId = char.id;
             }
         }
 
@@ -555,7 +563,7 @@ const Chat = (() => {
         try {
             const apiMessages = AI.buildMessages(currentConvId, conv.charIds || ['__model__']);
             const apiResult = await AI.chatWithUsage(apiMessages);
-            const reply = apiResult.content;
+            const rawReply = apiResult.content;
 
             if (apiResult.tokens) {
                 Store.addTokenUsage(currentConvId, apiResult.tokens);
@@ -563,39 +571,35 @@ const Chat = (() => {
 
             removeTypingIndicator();
 
-            let senderName = 'Assistant';
-            let senderAvatar = '🤖';
-            let senderId = '__model__';
-
-            if (conv.charIds && conv.charIds.length === 1) {
-                const char = Store.getChar(conv.charIds[0]);
-                if (char) {
-                    senderName = char.name;
-                    senderAvatar = char.avatar || '🤖';
-                    senderId = char.id;
-                }
-            } else if (conv.type === 'group') {
-                const match = reply.match(/^([^:]+):\s*/);
+            // 群聊：从回复开头解析发言角色
+            if (conv.type === 'group') {
+                const match = rawReply.match(/^([^:\[]+):\s*/);
                 if (match) {
-                    const charName = match[1].trim();
+                    const parsedName = match[1].trim();
                     const char = (conv.charIds || [])
                         .map(id => Store.getChar(id))
-                        .find(c => c && c.name === charName);
+                        .find(c => c && c.name === parsedName);
                     if (char) {
                         senderName = char.name;
-                        senderAvatar = char.avatar || '🤖';
+                        senderAvatar = char.avatar || '\uD83E\uDD16';
                         senderId = char.id;
                     }
                 }
             }
 
-            Store.addMessage(currentConvId, {
-                senderId,
-                senderName,
-                senderAvatar,
-                content: reply,
-                role: 'assistant',
-                type: 'text'
+            // 解析回复，拆出特殊消息指令
+            const replyParts = AI.parseReply(rawReply);
+
+            replyParts.forEach(function(part) {
+                if (!part.content.trim()) return;
+                Store.addMessage(currentConvId, {
+                    senderId: senderId,
+                    senderName: senderName,
+                    senderAvatar: senderAvatar,
+                    content: part.content,
+                    role: 'assistant',
+                    type: part.type
+                });
             });
 
             renderMessages();
@@ -603,21 +607,20 @@ const Chat = (() => {
 
         } catch (err) {
             console.error(err);
-            // 判断错误类型给出更友好的提示
             let errMsg = err.message || 'Unknown error';
             if (!navigator.onLine) {
-                errMsg = '网络已断开，请检查连接后重试';
+                errMsg = '\u7F51\u7EDC\u5DF2\u65AD\u5F00\uFF0C\u8BF7\u68C0\u67E5\u8FDE\u63A5\u540E\u91CD\u8BD5';
             } else if (errMsg.includes('401')) {
-                errMsg = 'API Key 无效或已过期';
+                errMsg = 'API Key \u65E0\u6548\u6216\u5DF2\u8FC7\u671F';
             } else if (errMsg.includes('429')) {
-                errMsg = '请求过于频繁，请稍后再试';
+                errMsg = '\u8BF7\u6C42\u8FC7\u4E8E\u9891\u7E41\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5';
             } else if (errMsg.includes('500') || errMsg.includes('502') || errMsg.includes('503')) {
-                errMsg = '服务器错误，请稍后重试';
+                errMsg = '\u670D\u52A1\u5668\u9519\u8BEF\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5';
             } else if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) {
-                errMsg = '无法连接到 API，请检查 API URL 设置';
+                errMsg = '\u65E0\u6CD5\u8FDE\u63A5\u5230 API\uFF0C\u8BF7\u68C0\u67E5 API URL \u8BBE\u7F6E';
             }
             showInlineError(errMsg);
-            UI.toast('⚠️ ' + errMsg);
+            UI.toast('\u26A0\uFE0F ' + errMsg);
         } finally {
             setSendingState(false);
         }
@@ -949,7 +952,7 @@ const Chat = (() => {
         });
     }
 
-    // ── Background Message ────────────────────────────────────────
+        // ── Background Message ────────────────────────────────────────
 
     async function sendBgMessage(charId) {
         var char = Store.getChar(charId);
@@ -972,26 +975,33 @@ const Chat = (() => {
                 role: 'user',
                 content: '[System: ' + char.name + ' decides to send a proactive message to the user. '
                     + 'This could be sharing something interesting, asking about their day, '
-                    + 'reacting to a recent forum post, or just casual conversation. '
-                    + 'Stay in character. Do NOT include any system notes in your reply.]'
+                    + 'sending a sticker, sharing a location, or just casual conversation. '
+                    + 'Stay in character. You may use special message tags if it fits naturally. '
+                    + 'Do NOT include any system notes in your reply.]'
             });
 
             var reply = await AI.chat(apiMessages, { temperature: 1.0, max_tokens: 300 });
 
-            Store.addMessage(conv.id, {
-                senderId: char.id,
-                senderName: char.name,
-                senderAvatar: char.avatar || '👤',
-                content: reply.trim(),
-                role: 'assistant',
-                type: 'text'
+            // 解析回复，支持特殊消息类型
+            var replyParts = AI.parseReply(reply.trim());
+
+            replyParts.forEach(function(part) {
+                if (!part.content.trim()) return;
+                Store.addMessage(conv.id, {
+                    senderId: char.id,
+                    senderName: char.name,
+                    senderAvatar: char.avatar || '\uD83D\uDC64',
+                    content: part.content,
+                    role: 'assistant',
+                    type: part.type
+                });
             });
 
             Store.addLog({
                 level: 'info',
                 source: 'chat-bg',
                 message: char.name + ' sent a proactive message',
-                detail: 'Conv: ' + conv.id + ' | Content: ' + reply.trim().slice(0, 80)
+                detail: 'Conv: ' + conv.id + ' | Parts: ' + replyParts.length + ' | Preview: ' + reply.trim().slice(0, 80)
             });
 
             if (currentConvId === conv.id
@@ -1011,6 +1021,7 @@ const Chat = (() => {
             });
         }
     }
+
 
     return {
         init: init,
