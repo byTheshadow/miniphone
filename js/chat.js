@@ -1021,7 +1021,7 @@ const Chat = (() => {
             });
         }
     }
-
+    
 
     return {
         init: init,
