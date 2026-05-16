@@ -1,8 +1,8 @@
 const Chat = (() => {
     let currentConvId = null;
+    let isSending = false; // 防止重复发送
 
     function init() {
-        // Ensure "Model" char exists
         const chars = Store.getChars();
         if (!chars.find(c => c.id === '__model__')) {
             chars.push({
@@ -16,7 +16,6 @@ const Chat = (() => {
             Store.saveChars(chars);
         }
 
-        // Ensure a default conversation with model exists
         const convos = Store.getConversations();
         if (!convos.find(c => c.charIds && c.charIds.includes('__model__') && c.charIds.length === 1)) {
             Store.addConversation({
@@ -52,7 +51,6 @@ const Chat = (() => {
             commentInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    // forum handles this
                 }
             });
         }
@@ -193,7 +191,6 @@ const Chat = (() => {
             avatarEl.textContent = avatar;
         }
 
-        // Apply background image
         const msgContainer = document.getElementById('chat-messages');
         if (conv.bgImage) {
             msgContainer.style.backgroundImage = `url(${conv.bgImage})`;
@@ -203,7 +200,6 @@ const Chat = (() => {
             msgContainer.style.backgroundImage = '';
         }
 
-        // Apply custom bubble CSS
         document.getElementById('custom-bubble-style')?.remove();
         if (conv.bubbleCss) {
             const style = document.createElement('style');
@@ -233,7 +229,7 @@ const Chat = (() => {
             return;
         }
 
-        container.innerHTML = messages.map(msg => {
+        container.innerHTML = messages.map((msg, idx) => {
             if (msg.role === 'system') {
                 return `<div class="msg-system">${UI.escapeHtml(msg.content)}</div>`;
             }
@@ -243,17 +239,130 @@ const Chat = (() => {
             const name = isSelf ? (settings.username || 'User') : (msg.senderName || 'Assistant');
 
             return `
-                <div class="msg-row ${isSelf ? 'self' : 'other'}">
+                <div class="msg-row ${isSelf ? 'self' : 'other'}" data-msg-idx="${idx}">
                     <div class="msg-avatar">${renderMsgAvatar(avatar)}</div>
                     <div class="msg-content">
                         ${!isSelf ? `<div class="msg-sender">${UI.escapeHtml(name)}</div>` : ''}
-                        <div class="msg-bubble">${renderBubbleContent(msg)}</div>
+                        <div class="msg-bubble" data-msg-idx="${idx}">${renderBubbleContent(msg)}</div>
                         <div class="msg-time">${UI.formatFullTime(msg.timestamp)}</div>
                     </div>
                 </div>`;
         }).join('');
 
+        // 绑定长按 / 右键菜单
+        container.querySelectorAll('.msg-bubble').forEach(bubble => {
+            let pressTimer = null;
+
+            bubble.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showMsgMenu(parseInt(bubble.dataset.msgIdx));
+            });
+
+            bubble.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => {
+                    showMsgMenu(parseInt(bubble.dataset.msgIdx));
+                }, 500);
+            }, { passive: true });
+
+            bubble.addEventListener('touchend', () => {
+                clearTimeout(pressTimer);
+            });
+
+            bubble.addEventListener('touchmove', () => {
+                clearTimeout(pressTimer);
+            });
+        });
+
         container.scrollTop = container.scrollHeight;
+    }
+
+    // ── 消息操作菜单 ──────────────────────────────────────────────
+
+    function showMsgMenu(msgIdx) {
+        const messages = Store.getMessages(currentConvId);
+        const msg = messages[msgIdx];
+        if (!msg) return;
+
+        const isLastAiMsg = msg.senderId !== '__user__' && msgIdx === messages.length - 1;
+        const isUserMsg = msg.senderId === '__user__';
+
+        UI.showModal(`
+            <h3>💬 Message</h3>
+            <div style="
+                background: var(--bg-glass);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                padding: 10px 14px;
+                font-size: 13px;
+                color: var(--text-secondary);
+                max-height: 80px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-bottom: 14px;
+                line-height: 1.5;
+            ">${UI.escapeHtml((msg.content || '').slice(0, 120))}${msg.content && msg.content.length > 120 ? '…' : ''}</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                ${isLastAiMsg ? `<button class="gothic-btn full-width" id="btn-msg-reroll">🎲 Reroll (Regenerate)</button>` : ''}
+                ${isUserMsg ? `<button class="gothic-btn full-width" id="btn-msg-resend">🔄 Resend & Regenerate</button>` : ''}
+                <button class="gothic-btn full-width" id="btn-msg-copy">📋 Copy Text</button>
+                <button class="gothic-btn full-width danger" id="btn-msg-delete">🗑️ Delete Message</button>
+                <button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>
+            </div>
+        `);
+
+        document.getElementById('btn-msg-copy')?.addEventListener('click', () => {
+            navigator.clipboard.writeText(msg.content || '').then(() => {
+                UI.closeModal();
+                UI.toast('Copied ✦');
+            }).catch(() => {
+                UI.closeModal();
+                UI.toast('Copy failed');
+            });
+        });
+
+        document.getElementById('btn-msg-delete')?.addEventListener('click', () => {
+            const msgs = Store.getMessages(currentConvId);
+            msgs.splice(msgIdx, 1);
+            Store.saveMessages(currentConvId, msgs);
+            UI.closeModal();
+            renderMessages();
+            UI.toast('Message deleted');
+        });
+
+        document.getElementById('btn-msg-reroll')?.addEventListener('click', () => {
+            UI.closeModal();
+            rerollLastAiMessage();
+        });
+
+        document.getElementById('btn-msg-resend')?.addEventListener('click', () => {
+            UI.closeModal();
+            resendUserMessage(msgIdx);
+        });
+    }
+
+    // 重新生成最后一条 AI 消息
+    async function rerollLastAiMessage() {
+        if (!currentConvId || isSending) return;
+        const msgs = Store.getMessages(currentConvId);
+        // 删掉最后一条 AI 消息
+        const lastIdx = msgs.length - 1;
+        if (msgs[lastIdx] && msgs[lastIdx].senderId !== '__user__') {
+            msgs.splice(lastIdx, 1);
+            Store.saveMessages(currentConvId, msgs);
+        }
+        renderMessages();
+        await triggerAiReply();
+    }
+
+    // 重发用户消息并重新生成 AI 回复
+    async function resendUserMessage(msgIdx) {
+        if (!currentConvId || isSending) return;
+        const msgs = Store.getMessages(currentConvId);
+        // 删掉该用户消息之后的所有消息（包括之前的 AI 回复）
+        msgs.splice(msgIdx + 1);
+        Store.saveMessages(currentConvId, msgs);
+        renderMessages();
+        await triggerAiReply();
     }
 
     function renderMsgAvatar(value) {
@@ -267,7 +376,6 @@ const Chat = (() => {
         return UI.escapeHtml(value);
     }
 
-    // Render bubble content based on message type
     function renderBubbleContent(msg) {
         switch (msg.type) {
             case 'sticker':
@@ -315,20 +423,99 @@ const Chat = (() => {
         return html;
     }
 
+    // ── 打字指示器 ────────────────────────────────────────────────
+
+    function showTypingIndicator(charName, charAvatar) {
+        removeTypingIndicator();
+        const msgContainer = document.getElementById('chat-messages');
+        const el = document.createElement('div');
+        el.className = 'msg-row other';
+        el.id = 'typing-indicator';
+        el.innerHTML = `
+            <div class="msg-avatar">${renderMsgAvatar(charAvatar || '🤖')}</div>
+            <div class="msg-content">
+                <div class="msg-sender typing-name">${UI.escapeHtml(charName || 'Assistant')}</div>
+                <div class="msg-bubble typing-bubble">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span class="typing-label">正在输入…</span>
+                </div>
+            </div>`;
+        msgContainer.appendChild(el);
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        document.getElementById('typing-indicator')?.remove();
+    }
+
+    // ── 内联错误卡 ────────────────────────────────────────────────
+
+    function showInlineError(errorMsg) {
+        removeTypingIndicator();
+        const msgContainer = document.getElementById('chat-messages');
+        const el = document.createElement('div');
+        el.className = 'msg-error-card';
+        el.id = 'msg-error-card';
+        el.innerHTML = `
+            <span class="msg-error-icon">⚠️</span>
+            <div class="msg-error-body">
+                <div class="msg-error-title">发送失败</div>
+                <div class="msg-error-detail">${UI.escapeHtml(errorMsg)}</div>
+            </div>
+            <button class="msg-error-retry" id="btn-error-retry">重试</button>`;
+        msgContainer.appendChild(el);
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+
+        document.getElementById('btn-error-retry')?.addEventListener('click', () => {
+            el.remove();
+            triggerAiReply();
+        });
+    }
+
+    function removeInlineError() {
+        document.getElementById('msg-error-card')?.remove();
+    }
+
+    // ── 发送状态控制 ──────────────────────────────────────────────
+
+    function setSendingState(sending) {
+        isSending = sending;
+        const btn = document.getElementById('btn-send');
+        const input = document.getElementById('chat-input');
+        if (!btn) return;
+        if (sending) {
+            btn.disabled = true;
+            btn.textContent = '⏳';
+            btn.style.opacity = '0.6';
+            if (input) input.disabled = true;
+        } else {
+            btn.disabled = false;
+            btn.textContent = '➤';
+            btn.style.opacity = '';
+            if (input) {
+                input.disabled = false;
+                input.focus();
+            }
+        }
+    }
+
     // ── Send Message ──────────────────────────────────────────────
 
     async function sendMessage() {
-        if (!currentConvId) return;
+        if (!currentConvId || isSending) return;
 
         const input = document.getElementById('chat-input');
         const content = input.value.trim();
         if (!content) return;
 
+        removeInlineError();
+
         input.value = '';
         input.style.height = 'auto';
 
         const settings = Store.getSettings();
-        const conv = Store.getConversation(currentConvId);
 
         Store.addMessage(currentConvId, {
             senderId: '__user__',
@@ -340,38 +527,41 @@ const Chat = (() => {
         });
 
         renderMessages();
+        await triggerAiReply();
+    }
 
-        // Typing indicator
-        const msgContainer = document.getElementById('chat-messages');
-        const typingEl = document.createElement('div');
-        typingEl.className = 'msg-row other';
-        typingEl.id = 'typing-indicator';
+    // ── 核心 AI 回复逻辑（sendMessage / reroll / resend 共用）────
 
-        let typingAvatar = '🤖';
+    async function triggerAiReply() {
+        if (!currentConvId || isSending) return;
+
+        const conv = Store.getConversation(currentConvId);
+        if (!conv) return;
+
+        // 获取角色信息用于指示器
+        let charName = 'Assistant';
+        let charAvatar = '🤖';
         if (conv.charIds && conv.charIds.length === 1) {
             const char = Store.getChar(conv.charIds[0]);
-            if (char) typingAvatar = char.avatar || '🤖';
+            if (char) {
+                charName = char.name;
+                charAvatar = char.avatar || '🤖';
+            }
         }
 
-        typingEl.innerHTML = `
-            <div class="msg-avatar">${renderMsgAvatar(typingAvatar)}</div>
-            <div class="msg-content">
-                <div class="msg-bubble">
-                    <div class="typing-indicator"><span></span><span></span><span></span></div>
-                </div>
-            </div>`;
-        msgContainer.appendChild(typingEl);
-        msgContainer.scrollTop = msgContainer.scrollHeight;
+        setSendingState(true);
+        showTypingIndicator(charName, charAvatar);
 
         try {
             const apiMessages = AI.buildMessages(currentConvId, conv.charIds || ['__model__']);
             const apiResult = await AI.chatWithUsage(apiMessages);
-const reply = apiResult.content;
-if (apiResult.tokens) {
-    Store.addTokenUsage(currentConvId, apiResult.tokens);
-}
+            const reply = apiResult.content;
 
-            typingEl.remove();
+            if (apiResult.tokens) {
+                Store.addTokenUsage(currentConvId, apiResult.tokens);
+            }
+
+            removeTypingIndicator();
 
             let senderName = 'Assistant';
             let senderAvatar = '🤖';
@@ -412,13 +602,29 @@ if (apiResult.tokens) {
             AI.checkAndSummarize(currentConvId);
 
         } catch (err) {
-            typingEl.remove();
-            UI.toast('Error: ' + err.message);
             console.error(err);
+            // 判断错误类型给出更友好的提示
+            let errMsg = err.message || 'Unknown error';
+            if (!navigator.onLine) {
+                errMsg = '网络已断开，请检查连接后重试';
+            } else if (errMsg.includes('401')) {
+                errMsg = 'API Key 无效或已过期';
+            } else if (errMsg.includes('429')) {
+                errMsg = '请求过于频繁，请稍后再试';
+            } else if (errMsg.includes('500') || errMsg.includes('502') || errMsg.includes('503')) {
+                errMsg = '服务器错误，请稍后重试';
+            } else if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) {
+                errMsg = '无法连接到 API，请检查 API URL 设置';
+            }
+            showInlineError(errMsg);
+            UI.toast('⚠️ ' + errMsg);
+        } finally {
+            setSendingState(false);
         }
     }
 
-    // Send a special message (non-text types)
+    // ── Special Messages ──────────────────────────────────────────
+
     function sendSpecialMessage(type, content) {
         if (!currentConvId) return;
         const settings = Store.getSettings();
@@ -435,7 +641,7 @@ if (apiResult.tokens) {
         renderMessages();
     }
 
-    // ── Extra Panel (special messages) ────────────────────────────
+    // ── Extra Panel ───────────────────────────────────────────────
 
     function showExtraPanel() {
         UI.showModal(`
@@ -479,7 +685,7 @@ if (apiResult.tokens) {
                     cursor: pointer;
                     transition: all 0.2s;
                 }
-                .extra-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+                .extra-item:hover { background: var(--bg-glass-hover); border-color: rgba(120,120,120,0.5); }
                 .extra-item span { font-size: 28px; }
                 .extra-item label { font-size: 11px; color: var(--text-secondary); cursor: pointer; }
             </style>
@@ -530,7 +736,7 @@ if (apiResult.tokens) {
 
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                e.preventDefault();
+                                e.preventDefault();
                 document.getElementById('btn-send-special')?.click();
             }
         });
@@ -574,8 +780,8 @@ if (apiResult.tokens) {
                     display: flex; align-items: center; gap: 8px; padding: 8px;
                     border-radius: 8px; cursor: pointer; transition: background 0.2s;
                 }
-                .char-check-item:hover { background: var(--accent-dim); }
-                .char-check-item input { accent-color: var(--accent); }
+                .char-check-item:hover { background: var(--bg-glass-hover); }
+                .char-check-item input { accent-color: var(--text-primary); }
                 .char-check-item span { font-size: 13px; }
             </style>
         `);
@@ -704,7 +910,7 @@ if (apiResult.tokens) {
                 UI.toast('Bubble style applied');
             });
             document.getElementById('btn-clear-bubble').addEventListener('click', () => {
-                                Store.updateConversation(currentConvId, { bubbleCss: '' });
+                Store.updateConversation(currentConvId, { bubbleCss: '' });
                 document.getElementById('custom-bubble-style')?.remove();
                 UI.closeModal();
                 UI.toast('Bubble style cleared');
@@ -743,14 +949,14 @@ if (apiResult.tokens) {
         });
     }
 
-    //── Background Message (called by Forum/App for proactive chat) ──
+    // ── Background Message ────────────────────────────────────────
+
     async function sendBgMessage(charId) {
         var char = Store.getChar(charId);
         if (!char) return;
         var settings = Store.getSettings();
         if (!settings.apiUrl || !settings.model) return;
 
-        // Find existing conversation with this char
         var convos = Store.getConversations();
         var conv = convos.find(function(c) {
             return c.charIds && c.charIds.length === 1 && c.charIds[0] === charId;
@@ -775,7 +981,7 @@ if (apiResult.tokens) {
             Store.addMessage(conv.id, {
                 senderId: char.id,
                 senderName: char.name,
-                senderAvatar: char.avatar || '\uD83D\uDC64',
+                senderAvatar: char.avatar || '👤',
                 content: reply.trim(),
                 role: 'assistant',
                 type: 'text'
@@ -788,12 +994,10 @@ if (apiResult.tokens) {
                 detail: 'Conv: ' + conv.id + ' | Content: ' + reply.trim().slice(0, 80)
             });
 
-            // Refresh if user is viewing this chat
             if (currentConvId === conv.id
                 && document.getElementById('page-chat').classList.contains('active')) {
                 renderMessages();
             }
-            // Refresh contact list if visible
             if (document.getElementById('page-chat-list').classList.contains('active')) {
                 renderContactList();
             }
@@ -809,12 +1013,11 @@ if (apiResult.tokens) {
     }
 
     return {
-        init,
-        renderContactList,
-        openChat,
+        init: init,
+        renderContactList: renderContactList,
+        openChat: openChat,
         getCurrentConvId: function() { return currentConvId; },
         sendBgMessage: sendBgMessage
     };
 
 })();
-
