@@ -85,11 +85,19 @@ const AI = (() => {
 
     // ── Meta System Prompt ────────────────────────────────────────
     // 告诉 AI 它在手机聊天 app 里，以及所有可用的特殊消息指令
-    var META_CHAT_PROMPT = [
+        var META_CHAT_PROMPT = [
         'IMPORTANT CONTEXT: You are roleplaying as a character in a mobile chat app, communicating with the user via text messages — just like WeChat, LINE, or iMessage.',
         'You are ONLINE and chatting in real-time. The user is on the other end of the screen right now.',
         '',
-        'You may send special message types by including ONE of the following tags ALONE on its own line (no other text on that line):',
+        'MULTI-BUBBLE: You can send multiple separate messages (each becomes its own chat bubble) by separating them with a line containing only: ---',
+        'Example:',
+        '  Haha are you serious right now',
+        '  ---',
+        '  [sticker:\uD83D\uDE2D]',
+        '  ---',
+        '  ok fine I\'ll come pick you up',
+        '',
+        'You may also send special message types by including ONE of the following tags ALONE on its own line:',
         '  [sticker:EMOJI]              — send an emoji sticker, e.g. [sticker:\uD83D\uDE18]',
         '  [redpacket:AMOUNT:MESSAGE]   — send a red packet, e.g. [redpacket:\uFFE5188:\u751F\u65E5\u5FEB\u4E50]',
         '  [transfer:AMOUNT:NOTE]       — send a money transfer, e.g. [transfer:\uFFE5200:\u8BF7\u5403\u996D]',
@@ -97,13 +105,14 @@ const AI = (() => {
         '  [payment:AMOUNT:REASON]      — request payment, e.g. [payment:\uFFE550:\u4ECA\u665A\u7684\u996D\u9177]',
         '  [image:DESCRIPTION]          — send an image (described), e.g. [image:\u6211\u5728\u548C\u732B\u548C\u5C45\uFF0C\u5B83\u5C31\u8D74\u5728\u6211\u8138\u4E0A]',
         '',
-        'Rules for special messages:',
-        '- Only use a special tag when it genuinely fits the conversation and your character.',
-        '- A special tag must be on its own line. You may include normal text before or after it.',
-        '- Never explain or describe the tag — just send it naturally as part of the conversation.',
+        'Rules:',
+        '- Use --- to split into multiple bubbles when it feels natural (like real texting: short bursts, reactions, follow-ups).',
+        '- A special tag must be on its own line within its bubble segment.',
+        '- Never explain or describe the tag — just send it naturally.',
         '- Do NOT use special tags in every message. Use them sparingly and naturally.',
-        '- You can combine text + one special tag, e.g. write a sentence then put [sticker:\uD83D\uDE18] on the next line.'
+        '- Keep individual bubbles short and conversational. Avoid walls of text in one bubble.'
     ].join('\n');
+
 
     function buildMessages(convId, charIds) {
         const settings = Store.getSettings();
@@ -220,49 +229,62 @@ const AI = (() => {
     // ── 解析 AI 回复，拆出特殊消息指令 ──────────────────────────
     // 返回 Array<{ type: string, content: string }>
     // type 为 'text' 时 content 是普通文字，其他为特殊消息类型
+        // ── 解析 AI 回复，拆出多气泡 + 特殊消息指令 ─────────────────
+    // 返回 Array<{ type: string, content: string }>
     function parseReply(rawReply) {
-        if (!rawReply) return [{ type: 'text', content: '' }];
+        if (!rawReply) return [];
 
-        // 匹配 [type:content] 或 [type:part1:part2] 格式
-        // 支持的类型：sticker / redpacket / transfer / location / payment / image
-        var specialPattern = /\[(sticker|redpacket|transfer|location|payment|image):([^\]]+)\]/g;
+        // 第一步：按 --- 分隔符拆成多个气泡段
+        // 支持 \n---\n 或行首 --- 单独一行
+        var segments = rawReply
+            .split(/\n\s*---\s*\n|\n\s*---\s*$|^\s*---\s*\n/m)
+            .map(function(s) { return s.trim(); })
+            .filter(function(s) { return s.length > 0; });
+
+        if (segments.length === 0) return [];
+
         var parts = [];
-        var lastIndex = 0;
-        var match;
 
-        while ((match = specialPattern.exec(rawReply)) !== null) {
-            // 指令前的文字
-            var before = rawReply.slice(lastIndex, match.index).trim();
-            if (before) {
-                parts.push({ type: 'text', content: before });
+        segments.forEach(function(segment) {
+            // 第二步：每个段内检查是否是纯特殊指令
+            var specialMatch = segment.match(/^\[(sticker|redpacket|transfer|location|payment|image):([^\]]+)\]$/);
+            if (specialMatch) {
+                var msgType = specialMatch[1] === 'image' ? 'image_desc' : specialMatch[1];
+                parts.push({ type: msgType, content: specialMatch[2] });
+                return;
             }
 
-            var msgType = match[1];
-            var msgContent = match[2];
+            // 第三步：段内可能混有特殊指令（指令单独一行）
+            var specialPattern = /\[(sticker|redpacket|transfer|location|payment|image):([^\]]+)\]/g;
+            var lastIndex = 0;
+            var match;
+            var hasSpecial = false;
 
-            // image 类型映射到 image_desc
-            if (msgType === 'image') msgType = 'image_desc';
+            while ((match = specialPattern.exec(segment)) !== null) {
+                hasSpecial = true;
+                var before = segment.slice(lastIndex, match.index).trim();
+                if (before) {
+                    parts.push({ type: 'text', content: before });
+                }
+                var msgType = match[1] === 'image' ? 'image_desc' : match[1];
+                parts.push({ type: msgType, content: match[2] });
+                lastIndex = match.index + match[0].length;
+            }
 
-            // redpacket / transfer / payment 格式是 amount:note，合并成一个字符串
-            // content 直接存原始内容，renderBubbleContent 会显示
-            parts.push({ type: msgType, content: msgContent });
+            if (hasSpecial) {
+                var remaining = segment.slice(lastIndex).trim();
+                if (remaining) {
+                    parts.push({ type: 'text', content: remaining });
+                }
+            } else {
+                // 纯文字段，直接作为一个气泡
+                parts.push({ type: 'text', content: segment });
+            }
+        });
 
-            lastIndex = match.index + match[0].length;
-        }
-
-        // 指令后剩余的文字
-        var remaining = rawReply.slice(lastIndex).trim();
-        if (remaining) {
-            parts.push({ type: 'text', content: remaining });
-        }
-
-        // 如果完全没有匹配到任何特殊指令，返回纯文字
-        if (parts.length === 0) {
-            parts.push({ type: 'text', content: rawReply });
-        }
-
-        return parts;
+        return parts.filter(function(p) { return p.content && p.content.trim(); });
     }
+
 
     async function checkAndSummarize(convId) {
         const allMsgs = Store.getMessages(convId);
