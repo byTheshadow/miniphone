@@ -829,6 +829,8 @@ const Chat = (() => {
 
     // ── Chat Menu ─────────────────────────────────────────────────
 
+       // ── Chat Menu ─────────────────────────────────────────────────
+
     function showChatMenu() {
         if (!currentConvId) return;
         const conv = Store.getConversation(currentConvId);
@@ -920,29 +922,62 @@ const Chat = (() => {
             });
         });
 
-                document.getElementById('btn-view-summary').addEventListener('click', () => {
+        // ── View Summary（调用新版 modal）──
+        document.getElementById('btn-view-summary').addEventListener('click', () => {
             UI.closeModal();
             showSummaryModal();
         });
 
-
+        // ── Clear Messages ──
         document.getElementById('btn-clear-chat').addEventListener('click', () => {
-            Store.saveMessages(currentConvId, []);
-            Store.saveSummary(currentConvId, '');
-            renderMessages();
             UI.closeModal();
-            UI.toast('Messages cleared');
+            UI.showModal(`
+                <h3>⚠️ Clear Messages</h3>
+                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+                    This will delete all messages and summary in this conversation. This cannot be undone.
+                </p>
+                <div class="modal-btns">
+                    <button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>
+                    <button class="gothic-btn danger" id="btn-confirm-clear">Clear All</button>
+                </div>
+            `);
+            setTimeout(() => {
+                document.getElementById('btn-confirm-clear').addEventListener('click', () => {
+                    Store.saveMessages(currentConvId, []);
+                    Store.saveSummary(currentConvId, '');
+                    renderMessages();
+                    UI.closeModal();
+                    UI.toast('Messages cleared');
+                });
+            }, 50);
         });
 
+        // ── Delete Conversation ──
         document.getElementById('btn-delete-chat').addEventListener('click', () => {
-            Store.deleteConversation(currentConvId);
-            currentConvId = null;
             UI.closeModal();
-            renderContactList();
-            App.navigateTo('chat-list');
-            UI.toast('Conversation deleted');
+            UI.showModal(`
+                <h3>☠️ Delete Conversation</h3>
+                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+                    This will permanently delete this conversation and all its messages. This cannot be undone.
+                </p>
+                <div class="modal-btns">
+                    <button class="gothic-btn" onclick="UI.closeModal()">Cancel</button>
+                    <button class="gothic-btn danger" id="btn-confirm-delete">Delete</button>
+                </div>
+            `);
+            setTimeout(() => {
+                document.getElementById('btn-confirm-delete').addEventListener('click', () => {
+                    Store.deleteConversation(currentConvId);
+                    currentConvId = null;
+                    UI.closeModal();
+                    renderContactList();
+                    App.navigateTo('chat-list');
+                    UI.toast('Conversation deleted');
+                });
+            }, 50);
         });
     }
+
         // ── Summary Modal（阅读 + 编辑 + 手动生成）────────────────────
 
     function showSummaryModal() {
